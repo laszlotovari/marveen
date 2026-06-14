@@ -6,7 +6,7 @@ import { resolveFromPath } from '../platform.js'
 import { listAgentNames } from './agent-config.js'
 import { isAgentRunning, capturePane, restartAgentProcess } from './agent-process.js'
 import { resolveAgentSession } from './channel-mcp-reconnect.js'
-import { resumeMarveenSession, lastMainRespawnAt } from './channel-monitor.js'
+import { resumeMarveenSession, hardRestartMarveenChannels, lastMainRespawnAt } from './channel-monitor.js'
 import { MAIN_CHANNELS_SESSION } from './main-agent.js'
 import { detectReauthNeeded } from './reauth-detect.js'
 import { loginSequence, literalKeyArgs, specialKeyArgs } from './tmux-keys.js'
@@ -27,17 +27,33 @@ import { loginSequence, literalKeyArgs, specialKeyArgs } from './tmux-keys.js'
 //   2. FULLY EXPIRED -- the refresh token itself is dead. No restart helps; the
 //      /login flow needs a human browser authorize step (cf. issue #248).
 //
-// So the loop is now: autonomous DETECTION -> one best-effort RESTART (heals
-// case 1 silently) -> if still dead past a boot grace, LOUD escalation to the
-// owner via notify.sh (plugin-independent Bot API, so it reaches the owner even
-// when the channel plugin is also wedged) for the manual browser /login.
+// So the loop is now: autonomous DETECTION -> one SOFT RESTART (heals case 1
+// silently) -> for the MAIN agent, if still dead past a boot grace, one HARD
+// RESTART (a fresh respawn that reliably re-mints) -> if STILL dead, LOUD
+// escalation to the owner via notify.sh (plugin-independent Bot API, so it
+// reaches the owner even when the channel plugin is also wedged) for the manual
+// browser /login.
 //
-// Restart action: sub-agents via restartAgentProcess (stop+start); the MAIN
-// always-on channels session via resumeMarveenSession (tmux respawn-pane
-// --continue -- preserves the conversation, never kicks the attached client,
-// and writes the shared respawn stamp so the other watchers defer). The restart
-// is ONE-SHOT per dead-spell (restartedAtMs latches), so a genuinely-expired
-// token can never drive a respawn loop: it restarts once, then only escalates.
+// Why the extra hard-restart tier (added 2026-06-14): the MAIN soft restart is a
+// `--continue` respawn (resumeMarveenSession). On 2026-06-14 it fired exactly as
+// designed at 19:50 but did NOT re-mint the expired access token -- the fresh
+// `--continue` process resumes the conversation without making the startup API
+// call that triggers Claude Code's lazy token refresh, so the token stayed dead
+// and it escalated at 19:56. A full fleet restart (a FRESH process, no
+// --continue) healed it. So when the conversation-preserving restart fails to
+// heal, we now escalate to a fresh respawn (hardRestartMarveenChannels) BEFORE
+// paging the owner -- the same action that actually worked that night. The cost
+// is losing the live --continue conversation, but it only triggers when the soft
+// restart already failed, and the deterministic conversation ledger restores
+// recent context anyway. A working agent beats a dead one.
+//
+// Restart actions: sub-agents via restartAgentProcess (stop+start -- ALREADY a
+// fresh process, so they skip the hard-restart tier: a second identical restart
+// would not heal); the MAIN always-on channels session via resumeMarveenSession
+// (soft, --continue) then hardRestartMarveenChannels (fresh, no --continue).
+// Each tier is ONE-SHOT per dead-spell (restartedAtMs / hardRestartedAtMs latch),
+// so a genuinely-expired refresh token can never drive a respawn loop: it
+// restarts at most twice (soft, then hard), then only escalates.
 //
 // Sub-agents additionally get a best-effort /login send-keys alongside the
 // escalation. Production-host only (RESPAWN_ENABLED), like the other recovery
@@ -55,7 +71,8 @@ const ESCALATION_COOLDOWN_MS = 30 * 60 * 1000 // 1 alert / agent / 30 min (re-al
 export interface ReauthHealerState {
   consecutiveDead: number
   lastActionAtMs: number | null
-  restartedAtMs: number | null  // when the one-shot auto-restart fired this spell (null = not yet)
+  restartedAtMs: number | null      // when the one-shot SOFT restart fired this spell (null = not yet)
+  hardRestartedAtMs: number | null  // when the one-shot HARD restart fired this spell (main only; null = not yet)
 }
 
 export interface ReauthHealerInput {
@@ -73,69 +90,96 @@ export interface ReauthHealerThresholds {
 }
 
 export interface ReauthHealerDecision {
-  restart: boolean    // one-shot best-effort restart (heals the refreshable case)
-  sendKeys: boolean   // best-effort autonomous /login (sub-agents only, after restart failed)
-  escalate: boolean   // notify.sh alert to the owner (after restart failed)
+  restart: boolean      // one-shot SOFT restart (sub-agent stop+start; main --continue respawn)
+  hardRestart: boolean  // one-shot HARD restart (main only: fresh respawn, no --continue -- re-mints reliably)
+  sendKeys: boolean     // best-effort autonomous /login (sub-agents only, after restart failed)
+  escalate: boolean     // notify.sh alert to the owner (after every restart failed)
   next: ReauthHealerState
 }
 
-export const NO_REAUTH_STATE: ReauthHealerState = { consecutiveDead: 0, lastActionAtMs: null, restartedAtMs: null }
+export const NO_REAUTH_STATE: ReauthHealerState = { consecutiveDead: 0, lastActionAtMs: null, restartedAtMs: null, hardRestartedAtMs: null }
 
 /**
  * Pure decision for the healer. A clean probe (token healed, or session gone)
- * resets the spell. A confirmed dead-token-but-alive session goes through two
- * tiers: first ONE best-effort restart (after `restartThreshold` consecutive
- * dead probes, which heals the refreshable-token case silently), then -- if it
- * is still dead once `restartGraceMs` has elapsed since that restart -- escalate
- * to the owner, re-firing no more than once per `cooldownMs`. The restart latches
- * via `restartedAtMs`, so a genuinely-expired token restarts at most once per
- * spell and can never drive a respawn loop. send-keys never fires for the main
- * agent.
+ * resets the spell. A confirmed dead-token-but-alive session goes through up to
+ * three tiers:
+ *   1. SOFT restart -- after `restartThreshold` consecutive dead probes
+ *      (debounces a blip). Sub-agent stop+start, or the main `--continue`
+ *      respawn. Heals the common refreshable-token case.
+ *   2. HARD restart (MAIN only) -- if still dead `restartGraceMs` after the soft
+ *      restart, a fresh respawn (no --continue) that reliably re-mints. Skipped
+ *      for sub-agents, whose Tier-1 restart was ALREADY a fresh process.
+ *   3. Escalate -- if still dead `restartGraceMs` after the last applicable
+ *      restart, page the owner for a manual /login, re-firing at most once per
+ *      `cooldownMs`. Sub-agents also get a best-effort /login send-keys here.
+ * Each restart latches (`restartedAtMs` / `hardRestartedAtMs`), so a genuinely-
+ * expired refresh token restarts at most twice per spell and can never loop.
+ * send-keys never fires for the main agent.
  */
 export function decideReauthAction(input: ReauthHealerInput, t: ReauthHealerThresholds): ReauthHealerDecision {
   const { isDeadToken, sessionAlive, isMain, prev, nowMs } = input
 
   // Clean / not-applicable: end the spell, allow a fresh heal next time.
   if (!isDeadToken || !sessionAlive) {
-    return { restart: false, sendKeys: false, escalate: false, next: NO_REAUTH_STATE }
+    return { restart: false, hardRestart: false, sendKeys: false, escalate: false, next: NO_REAUTH_STATE }
   }
 
   const consecutiveDead = prev.consecutiveDead + 1
   const noop = (next: ReauthHealerState): ReauthHealerDecision =>
-    ({ restart: false, sendKeys: false, escalate: false, next })
+    ({ restart: false, hardRestart: false, sendKeys: false, escalate: false, next })
 
-  // Tier 1 -- one-shot restart. After `restartThreshold` consecutive dead probes
-  // (debounces a transient blip), restart ONCE. A fresh process re-mints a
-  // refreshable token silently; restartedAtMs latches so we never loop.
+  // Tier 1 -- one-shot SOFT restart. After `restartThreshold` consecutive dead
+  // probes (debounces a transient blip), restart ONCE. restartedAtMs latches so
+  // we never loop.
   if (prev.restartedAtMs == null) {
     if (consecutiveDead < t.restartThreshold) {
-      return noop({ consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: null })
+      return noop({ consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: null, hardRestartedAtMs: null })
     }
     return {
-      restart: true, sendKeys: false, escalate: false,
-      next: { consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: nowMs },
+      restart: true, hardRestart: false, sendKeys: false, escalate: false,
+      next: { consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: nowMs, hardRestartedAtMs: null },
     }
   }
 
-  // Post-restart grace -- the fresh process needs time to boot and make its
+  // Post-soft-restart grace -- the fresh process needs time to boot and make its
   // first authenticated call. A dead reading inside the window is likely stale
   // boot output, so do not judge it yet.
   if (nowMs - prev.restartedAtMs < t.restartGraceMs) {
-    return noop({ consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: prev.restartedAtMs })
+    return noop({ consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: prev.restartedAtMs, hardRestartedAtMs: prev.hardRestartedAtMs })
   }
 
-  // Tier 2 -- the restart did not heal it (still dead past the grace): the
-  // fully-expired case. Escalate to the owner for a manual browser /login, and
-  // (sub-agents only) fire a best-effort /login into the session. Rate-limited.
+  // Tier 2 (MAIN only) -- the soft `--continue` restart did not re-mint the token
+  // past the grace. Do ONE fresh respawn (no --continue), which reliably re-mints
+  // (cf. the 2026-06-14 outage: only a fresh process healed it). hardRestartedAtMs
+  // latches so we never loop. Sub-agents skip this: their Tier-1 was already a
+  // fresh stop+start, so a second identical restart cannot heal -- straight to
+  // Tier 3.
+  if (isMain && prev.hardRestartedAtMs == null) {
+    return {
+      restart: false, hardRestart: true, sendKeys: false, escalate: false,
+      next: { consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: prev.restartedAtMs, hardRestartedAtMs: nowMs },
+    }
+  }
+
+  // Post-hard-restart grace (MAIN) -- same boot-grace reasoning for the fresh
+  // respawn.
+  if (isMain && prev.hardRestartedAtMs != null && nowMs - prev.hardRestartedAtMs < t.restartGraceMs) {
+    return noop({ consecutiveDead, lastActionAtMs: prev.lastActionAtMs, restartedAtMs: prev.restartedAtMs, hardRestartedAtMs: prev.hardRestartedAtMs })
+  }
+
+  // Tier 3 -- still dead after every restart we can do: the refresh token itself
+  // is dead (fully-expired). Escalate to the owner for a manual browser /login,
+  // and (sub-agents only) fire a best-effort /login into the session. Rate-limited.
   const cooldownElapsed = prev.lastActionAtMs == null || (nowMs - prev.lastActionAtMs) >= t.cooldownMs
   return {
-    restart: false,
+    restart: false, hardRestart: false,
     sendKeys: cooldownElapsed && !isMain,
     escalate: cooldownElapsed,
     next: {
       consecutiveDead,
       lastActionAtMs: cooldownElapsed ? nowMs : prev.lastActionAtMs,
       restartedAtMs: prev.restartedAtMs,
+      hardRestartedAtMs: prev.hardRestartedAtMs,
     },
   }
 }
@@ -201,6 +245,22 @@ function performAutoRestart(label: string, session: string, isMain: boolean, rea
   }
 }
 
+// Tier 2 (MAIN only): the soft --continue respawn failed to re-mint the token,
+// so do a FRESH respawn (no --continue) via hardRestartMarveenChannels. This is
+// the action that actually healed the 2026-06-14 outage. Conversation continuity
+// is sacrificed (the fresh process has no --continue), but the soft restart has
+// already failed and the deterministic conversation ledger restores recent
+// context on the fresh boot.
+function performHardRestart(label: string, session: string, reason?: string): void {
+  logger.error({ label, session, reason }, 'reauth-healer: soft --continue restart did not re-mint the token -- escalating to a FRESH respawn (no --continue)')
+  try {
+    const r = hardRestartMarveenChannels()
+    if (!r.ok) logger.warn({ label, error: r.error }, 'reauth-healer: main hard-restart failed')
+  } catch (err) {
+    logger.warn({ err, label }, 'reauth-healer: main hard-restart threw')
+  }
+}
+
 function checkSession(label: string, session: string, isMain: boolean): void {
   const pane = capturePane(session)
   const sessionAlive = pane != null
@@ -220,6 +280,9 @@ function checkSession(label: string, session: string, isMain: boolean): void {
 
   if (decision.restart) {
     performAutoRestart(label, session, isMain, reauth.reason)
+  }
+  if (decision.hardRestart) {
+    performHardRestart(label, session, reauth.reason)
   }
   if (decision.sendKeys) {
     logger.warn({ label, session }, 'reauth-healer: still dead after auto-restart -- best-effort /login send-keys (sub-agent)')
