@@ -281,13 +281,15 @@
 </div>
 
 <div class="draft-note">
-  <h2>Marweennek, mielőtt tovább írom a többi 21 fejezetet</h2>
+  <h2>Marweennek: mind a 23 fejezet kész, ez a maradék nyitott lista</h2>
   <ol>
-    <li><strong>Screenshotok adatforrása nyitott kérdés.</strong> A recept működik (localhost:3420, rendszer-Chrome, <code>switchPage</code>), de a te élő példányodon valódi ügyfél-érzékeny adat látszik (biztonsági sebezhetőség-kártyák, valódi ügyfélnevek). Ezt már jeleztem inter-agent üzenetben. A Kanban fejezet screenshotja emiatt egyelőre <em>placeholder</em>. Az Áttekintés mintaképen az Aktivitás-panelt (ugyanígy valódi belső adat) elrejtettem, csak a statisztika-csempéket és a csapat-gráfot mutatja.</li>
-    <li><strong>"Dokumentáció" mint 23. fejezet.</strong> A 22 oldalon felül a sidebar alján külön álló "Dokumentáció" link (<code>data-page="docs"</code>) is valódi, önálló oldal (<code>loadDocs()</code>). Ezt beillesztettem utolsó fejezetként, a menü tényleges sorrendjét követve (a csoportok után, legalul). Szólj, ha nem kell.</li>
-    <li><strong>"Csapat" (<code>nav.team</code>) NEM kap önálló fejezetet.</strong> A kódban <code>switchPage('team')</code> automatikusan <code>'agents'</code>-re irányít át ("team' is merged into 'agents'"). Tehát ez egy visszamenőleges átirányítás, nem élő oldal. Az Ügynökök fejezetben az "Org chart" nézetként fogom leírni.</li>
-    <li><strong>"Archivált kártyák" a Kanban alfejezete lesz</strong>, nem önálló fejezet, nincs saját sidebar-linkje (eltávolították), a Kanban tábla "Archiváltak" gombjáról érhető el. Ez egyezik azzal, hogy te is a kanban.md mellé sorolted a doksitérképeden.</li>
-    <li>A meglévő <code>docs/kanban.md</code> tartalmát NEM másoltam be szó szerint: a technikai részeket (env kulcsok, API végpontok, adatmodell) kihagytam, csak a felhasználó-szintű viselkedést és a következményeket tartottam meg. Jelezd, ha ez nem jó irány, mielőtt a többi 12, doksival rendelkező fejezetnél is ezt csinálom.</li>
+    <li><strong>Screenshotok: minden fejezetben placeholder, a demo-példányra vár.</strong> A recept működik (localhost:3420, rendszer-Chrome, <code>switchPage</code>, bannerek elrejtve), de amíg nincs döntés a demo/generikus adatforrásról (lásd a msg 361/363 utáni egyeztetésünket), addig minden fejezet screenshot-helye "Screenshot még nincs beillesztve" placeholder. Az Áttekintés fejezetben az EGYETLEN kivétel: ott van egy tényleges, biztonságosnak ítélt kép (Aktivitás-panel elrejtve), mintának.</li>
+    <li><strong>"Dokumentáció" mint 23. fejezet.</strong> A 22 oldalon felül a sidebar alján külön álló "Dokumentáció" link (<code>data-page="docs"</code>) is valódi, önálló oldal (<code>loadDocs()</code>). Beillesztettem utolsó fejezetként, a menü tényleges sorrendjét követve (a csoportok után, legalul). Megírva.</li>
+    <li><strong>"Csapat" (<code>nav.team</code>) NEM kapott önálló fejezetet</strong> (a kódban automatikusan <code>agents</code>-re irányít át), az Ügynökök fejezetben van leírva "Org chart" nézetként.</li>
+    <li><strong>"Archivált kártyák" a Kanban alfejezete lett</strong>, nem önálló fejezet, mert nincs saját sidebar-linkje, a Kanban tábla "Archiváltak" gombjáról érhető el.</li>
+    <li><strong>Két doksi-mappelési pontosítás, amit menet közben találtam</strong> (nem a te hibád, csak jelzem, hogy a végleges anyagban is ez lesz irányadó): a <code>tokenUsage</code> fejezethez MÉGIS van doksi (<code>docs/token-usage.md</code>, nem hiányzik, ahogy a térkép jelezte); a <code>messages</code> és <code>migrate</code> fejezetekhez rendelt doksik (<code>inter-agent-send-reliability.md</code>, <code>MIGRATION.md</code>, <code>flotta-migracio.md</code>) más rétegről szólnak, mint amit a tényleges dashboard-oldal csinál (fejlesztői küldés-megbízhatóság, ill. Laci saját gépköltöztetési runbookja / teljes flotta export-import), ezért azokat a fejezeteket a felület + forráskód alapján írtam meg, nem a megadott doksiból.</li>
+    <li>A meglévő doksikat (kanban.md, archivalt-kartyak.md, naplo-audit.md, ideabox.md, kutatas.md, config-reference.md stb.) sehol nem másoltam be szó szerint: a technikai részeket (env kulcsok, API végpontok, adatmodell) mindenhol kihagytam, csak a felhasználó-szintű viselkedést és a következményeket tartottam meg.</li>
+    <li><strong>Telepítőnek-dobozok:</strong> a Költségek, Aktivitás, Frissítések, Beállítások, Vault, MCP fejezetekben szerepelnek, ahol tényleges fájlt/kulcsot/beállítást érint a funkció.</li>
   </ol>
 </div>
 
@@ -296,45 +298,45 @@
     <ul>
       <li><a href="#overview">Áttekintés</a></li>
       <li><a href="#kanban">Kanban</a></li>
-      <li><a href="#approvals" class="todo">Jóváhagyások</a></li>
+      <li><a href="#approvals">Jóváhagyások</a></li>
     </ul>
     <div class="toc-group-label">Csapat</div>
     <ul>
-      <li><a href="#agents" class="todo">Ügynökök</a></li>
-      <li><a href="#activity" class="todo">Aktivitás</a></li>
-      <li><a href="#messages" class="todo">Üzenetek</a></li>
-      <li><a href="#tasks" class="todo">Ütemezések</a></li>
-      <li><a href="#bgTasks" class="todo">Háttér</a></li>
+      <li><a href="#agents">Ügynökök</a></li>
+      <li><a href="#activity">Aktivitás</a></li>
+      <li><a href="#messages">Üzenetek</a></li>
+      <li><a href="#tasks">Ütemezések</a></li>
+      <li><a href="#bgTasks">Háttér</a></li>
     </ul>
     <div class="toc-group-label">Tudás</div>
     <ul>
-      <li><a href="#memories" class="todo">Memória</a></li>
-      <li><a href="#naplo" class="todo">Napló</a></li>
-      <li><a href="#skills" class="todo">Skillek</a></li>
-      <li><a href="#research" class="todo">Kutatás</a></li>
-      <li><a href="#ideas" class="todo">Ötletláda</a></li>
+      <li><a href="#memories">Memória</a></li>
+      <li><a href="#naplo">Napló</a></li>
+      <li><a href="#skills">Skillek</a></li>
+      <li><a href="#research">Kutatás</a></li>
+      <li><a href="#ideas">Ötletláda</a></li>
     </ul>
     <div class="toc-group-label">Statisztikák</div>
     <ul>
-      <li><a href="#costs" class="todo">Költségek</a></li>
-      <li><a href="#tokenUsage" class="todo">Token Monitor</a></li>
+      <li><a href="#costs">Költségek</a></li>
+      <li><a href="#tokenUsage">Token Monitor</a></li>
     </ul>
     <div class="toc-group-label">Rendszer</div>
     <ul>
-      <li><a href="#status" class="todo">Státusz</a></li>
-      <li><a href="#updates" class="todo">Frissítések</a></li>
-      <li><a href="#settings" class="todo">Beállítások</a></li>
-      <li><a href="#vault" class="todo">Vault</a></li>
+      <li><a href="#status">Státusz</a></li>
+      <li><a href="#updates">Frissítések</a></li>
+      <li><a href="#settings">Beállítások</a></li>
+      <li><a href="#vault">Vault</a></li>
     </ul>
     <div class="toc-group-label">Kapcsolatok</div>
     <ul>
-      <li><a href="#connectors" class="todo">MCP</a></li>
-      <li><a href="#federation" class="todo">Föderáció</a></li>
-      <li><a href="#migrate" class="todo">Költöztetés</a></li>
+      <li><a href="#connectors">MCP</a></li>
+      <li><a href="#federation">Föderáció</a></li>
+      <li><a href="#migrate">Költöztetés</a></li>
     </ul>
     <div class="toc-group-label">&nbsp;</div>
     <ul>
-      <li><a href="#docs" class="todo">Dokumentáció</a></li>
+      <li><a href="#docs">Dokumentáció</a></li>
     </ul>
   </nav>
 
@@ -1101,7 +1103,16 @@
 
     <section class="chapter" id="docs">
       <h2>Dokumentáció <span class="page-key">docs</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> A sidebar alján külön álló link, nem a fő menücsoportok része, a dashboardon belüli beépített dokumentáció-böngésző oldala. Lásd a fenti 2. megjegyzést Marweennek.</div>
+
+      <p class="purpose">A rendszer beépített, böngészőben olvasható dokumentáció-könyvtára. Ezt a kézikönyvet leszámítva itt találod a mélyebb, technikai jellegű leírásokat is, amiket ez a kézikönyv szándékosan nem másolt be szó szerint.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Bal oldalon a rendelkezésre álló dokumentumok listája, egy tétel megnyitására a jobb oldalon jelenik meg a megformázott tartalom, ahonnan az eredeti fájl le is tölthető.</p>
+
+      <div class="no-consequence">Ez az oldal is csak olvas: nincs rajta szerkesztés, sem törlés.</div>
     </section>
 
   </main>
