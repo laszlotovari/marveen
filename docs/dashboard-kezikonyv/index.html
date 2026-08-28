@@ -460,22 +460,161 @@
     <section class="chapter" id="approvals">
       <div class="chapter-group-label">&nbsp;</div>
       <h2>Jóváhagyások <span class="page-key">approvals</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/heartbeat-autonomy.md</code> (a fokozatos autonómia rendszer).</div>
+
+      <p class="purpose">Az ügynökök jóváhagyást igénylő kéréseinek gyűjtőhelye. Ha egy ügynök egy olyan kategóriájú műveletet szeretne végrehajtani, amit a beállított autonómia-szint szerint előbb jóvá kell hagyatnia, itt jelenik meg a kérés, határidővel.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <div class="note">Ez az oldal a konkrét, egyedi kéréseket mutatja. Az, hogy egy kategória (pl. "email küldés" vagy "kártya archiválás") milyen szinten legyen automatizálva, a <a href="#settings">Beállítások</a> oldal Autonómia füle alatt állítható.</div>
+
+      <h3>Statisztika-csempék</h3>
+      <p>Négy szám: Várakozó, Jóváhagyott, Elutasított, Lejárt. A várakozó darabszám a bal oldali menü "Jóváhagyások" pontján is megjelenik piros jelvényként.</p>
+
+      <h3>Figyelmeztető sáv</h3>
+      <p>Ha van legalább egy várakozó kérés, egy sáv jelenik meg a statisztikák felett: melyik ügynöktől, milyen kategóriában, mióta vár, és mennyi ideje van hátra a döntésig.</p>
+
+      <h3>Szűrők</h3>
+      <p>Státusz (Várakozó / Jóváhagyott / Elutasított / Lejárt), Ügynök és Kategória szerint szűkíthető a lista.</p>
+
+      <h3>A táblázat oszlopai</h3>
+      <table>
+        <tr><th>Oszlop</th><th>Jelentés</th></tr>
+        <tr><td>Időpont</td><td>Mikor érkezett a kérés.</td></tr>
+        <tr><td>Ágens</td><td>Melyik ügynök kéri a jóváhagyást.</td></tr>
+        <tr><td>Kategória</td><td>A kért művelet típusa (pl. egy adott autonómia-kategória kulcsa).</td></tr>
+        <tr><td>Tevékenység</td><td>Az ügynök saját szavaival leírt indoklás, mit szeretne tenni és miért. Ha hosszú, csonkolva jelenik meg, egérrel fölé állva a teljes szöveg olvasható.</td></tr>
+        <tr><td>Státusz</td><td>Várakozó / Jóváhagyott / Elutasított / Lejárt, színes jelvénnyel.</td></tr>
+        <tr><td>Határidő</td><td>Visszaszámláló a döntésig hátralévő időből; öt percnél kevesebb esetén pirosra vált.</td></tr>
+        <tr><td>Döntés</td><td>Várakozó soroknál a Jóváhagyás/Elutasítás gombok, lezárt soroknál ki döntötte el és mikor.</td></tr>
+      </table>
+
+      <div class="feature-block">
+        <h4>Jóváhagyás</h4>
+        <p>A sor "Jóváhagyás" gombja.</p>
+        <div class="consequence"><strong>Következmény:</strong> a kérés azonnal Jóváhagyott státuszba kerül, nincs megerősítő párbeszéd. Maga a művelet végrehajtását az ügynök indítja, amint lekérdezi a döntést, tehát a jóváhagyás pillanata és a tényleges végrehajtás között eltelhet néhány perc. A döntés a felületen nem vonható vissza.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Elutasítás</h4>
+        <p>A sor "Elutasítás" gombja.</p>
+        <div class="consequence"><strong>Következmény:</strong> a kérés azonnal Elutasított státuszba kerül, szintén megerősítés nélkül. Az ügynök nem hajtja végre a kért műveletet.</div>
+      </div>
+
+      <div class="no-consequence">A "Frissítés" gomb és a szűrők nem módosítanak semmit, kizárólag a listát töltik újra, illetve szűkítik.</div>
+
+      <div class="note">Ha egyetlen döntés sem születik a határidőig, a kérés magától Lejárt státuszba kerül. Ennek nincs automatikus következménye ezen az oldalon: hogy egy lejárt kérés után mit tesz az ügynök (pl. eszkalál, vagy egyszerűen nem hajtja végre a műveletet), az ügynök saját logikáján múlik, nem a dashboardon.</div>
     </section>
 
     <div class="group-divider">Csapat</div>
 
     <section class="chapter" id="agents">
       <h2>Ügynökök <span class="page-key">agents</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/agent-fleet.md</code>. Megjegyzés: ide kerül az "Org chart" nézet leírása is (a korábbi önálló "Csapat" oldal ide lett összevonva, lásd a fenti megjegyzést).</div>
+
+      <p class="purpose">A teljes ügynök-flotta kezelése egy helyen: kik dolgoznak, milyen szerepben, milyen modellel, és élnek-e éppen. Innen hozol létre új ügynököt, itt állítod le/indítod el, és itt viszed át egyik gépről a másikra.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Két nézet</h3>
+      <div class="feature-block">
+        <h4>Kártyák</h4>
+        <p>Minden ügynök egy kártya: név, státusz (Fut/Áll), avatar. A rácsban itt van az "Új ügynök" kártya is.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Org chart</h4>
+        <p>Ugyanaz a hierarchikus fastruktúra, amit az <a href="#overview">Áttekintés</a> Csapat kártyája is mutat: a főügynök és a beosztott ügynökök jelentési viszonyai. Ez korábban önálló "Csapat" menüpont volt, mára ide lett összevonva.</p>
+      </div>
+
+      <h3>Új ügynök létrehozása</h3>
+      <p>Az "Új ügynök" kártyára kattintva egy varázsló kéri be a nevet, a rövid leírást (szerepet), a modellt és egy avatart. Ezekből a rendszer legenerálja az ügynök személyiségét (<code>CLAUDE.md</code> és <code>SOUL.md</code> fájlok).</p>
+      <div class="consequence"><strong>Következmény:</strong> a létrehozás azonnal, véglegesen létrehozza az új ügynök könyvtárát a rendszeren. Ha a személyiség-generálás bármiért sikertelen, a rendszer egy általános sablonra esik vissza, de a folyamatot ekkor is sikeresnek jelzi, tehát érdemes az új ügynök első válaszait ellenőrizni, nem csak a "kész" üzenetet elhinni.</div>
+
+      <h3>Ügynök részletei</h3>
+      <p>Egy kártyára kattintva nyílik a részletező ablak, fülekre bontva: alapadatok, csatorna (Telegram/Slack párosítás), skillek, és a csapat-viszonyok (kinek a beosztottja).</p>
+
+      <div class="feature-block">
+        <h4>Indítás / Leállítás</h4>
+        <p>A részletező ablak tetején.</p>
+        <div class="consequence"><strong>Következmény:</strong> a Leállítás azonnal megszünteti az ügynök futó munkamenetét, onnantól nem válaszol semmire, amíg újra el nem indítod. Ez nem ideiglenes szüneteltetés: a rendszer emiatt magától NEM indítja újra a háttérben, amíg te (vagy egy másik ügynök) újra el nem indítod. Leállításhoz megerősítést kér.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Törlés</h4>
+        <p>A részletező ablakban, megerősítő párbeszéd után.</p>
+        <div class="consequence"><strong>Következmény:</strong> a törlés VÉGLEGES és azonnali: leállítja a futó munkamenetet, majd törli az ügynök teljes könyvtárát a lemezről, ezzel együtt a személyiségét (CLAUDE.md, SOUL.md), a beállításait, a skilljeit és a saját memóriáját is. Nincs kuka, nincs visszaállítás. Ha exportálni akarod, azt a törlés ELŐTT tedd meg.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Exportálás</h4>
+        <p>Egy hordozható <code>.tar.gz</code> csomagba menti az ügynök személyiségét és beállításait, amit egy másik gépre átvihetsz. Rákérdez, hogy a titkokat (csatorna-token, párosítási állapot) is vegye-e bele.</p>
+        <div class="consequence"><strong>Következmény:</strong> "titkok nélkül" a csomag biztonságosan megosztható (csak identitás és viselkedés). "Titkokkal" a csomag valódi hozzáférési adatokat (pl. Telegram-bot tokent) tartalmaz, ezt csak saját gépek közötti átvitelhez szabad használni, nem szabad megosztott vagy publikus helyre feltölteni.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Importálás</h4>
+        <p>A Kártyák nézet fejlécében: egy korábban exportált csomag (egy ügynöké vagy az egész flottáé) visszatölthető.</p>
+        <div class="consequence"><strong>Következmény:</strong> névütközés esetén a rendszer rákérdez a felülírásra. Ha egy importált ügynököt ugyanazzal a csatorna-tokennel egy második gépen is elindítasz, a Telegram/Slack szétosztja közöttük a beérkező üzeneteket, ezért régi gépen mindig állítsd le, mielőtt az új gépen elindítod.</div>
+      </div>
+
+      <h3>Modell elemzés</h3>
+      <p>Kiértékeli minden ügynökre, hogy a hozzárendelt Claude-modell (pl. Sonnet, Haiku, Opus) összhangban van-e a tényleges terheléssel (token-fogyasztás, kanban-terhelés, integrációk mélysége), és javasol egy megfelelőbb modellt, ha indokolt.</p>
+      <div class="consequence"><strong>Következmény:</strong> az elemzés önmagában nem változtat semmin, csak javaslatot ad. Ha van módosítást javasolt ügynök, és ezt megerősíted, a rendszer kanban-kártyát hoz létre a változtatáshoz, de magát a modellt nem írja át automatikusan.</div>
+
+      <div class="no-consequence">Az ügynökök egymás közötti üzenetváltásának megtekintéséhez lásd az <a href="#messages">Üzenetek</a> oldalt.</div>
     </section>
     <section class="chapter" id="activity">
       <h2>Aktivitás <span class="page-key">activity</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Élő, valós idejű állapotkép minden futó ügynökről: éppen dolgozik, tétlen, hibára futott, vagy le van állítva. Az oldal 3 másodpercenként frissül magától, amíg nyitva van. Ne keverd össze az <a href="#overview">Áttekintés</a> Aktivitás-kártyájával: az egy eseménynapló (mit csinált egy ügynök), ez itt a jelenlegi állapot.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Állapotjelvények</h3>
+      <table>
+        <tr><th>Jelvény</th><th>Jelentés</th></tr>
+        <tr><td>Dolgozik</td><td>Az ügynök éppen aktívan feldolgoz valamit.</td></tr>
+        <tr><td>Tétlen</td><td>Fut, de éppen nem csinál semmit.</td></tr>
+        <tr><td>Ismeretlen</td><td>A rendszer nem tudta megállapítani az állapotot a session tartalmából.</td></tr>
+        <tr><td>Hiba</td><td>Hiba látszik az ügynök session-jén.</td></tr>
+        <tr><td>Leállítva</td><td>Az ügynök session-je nem fut.</td></tr>
+      </table>
+      <p>Ha egy ügynök nem a szokásos, önállóan dolgozó módban van (pl. minden lépésnél megerősítést kérő módban ragadt), egy külön jelvény hívja fel erre a figyelmet.</p>
+
+      <h3>Kártya megnyitása: élő terminál</h3>
+      <p>Egy futó ügynök kártyájára kattintva egy élő terminál-ablak nyílik, ami az ügynök tényleges munkamenetét mutatja, valós időben.</p>
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        A terminál-ablak fejlécében egy "Input" kapcsoló dönti el, hogy a billentyűzeted el is jut-e az ügynök munkamenetéhez, vagy csak megfigyelheted. Alapállapotban ki van kapcsolva (csak-olvasható nézet).
+      </div>
+      <div class="consequence"><strong>Következmény:</strong> ha bekapcsolod az Input kapcsolót, onnantól amit begépelsz, az valóban eljut az ügynök élő session-jébe, mintha te ülnél a géphez, félbeszakíthatsz egy futó műveletet vagy új parancsot adhatsz ki. A be- és kikapcsolás is naplózásra kerül.</div>
+
+      <div class="no-consequence">Az állapotfigyelés önmagában nem avatkozik be semmibe, csak megjeleníti, mi történik. Leállított ügynökre kattintva nem nyílik terminál (a kártya nem kattintható).</div>
     </section>
     <section class="chapter" id="messages">
       <h2>Üzenetek <span class="page-key">messages</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/inter-agent-send-reliability.md</code>.</div>
+
+      <p class="purpose">Az ügynökök egymás közötti üzenetváltásának megtekintése, és közvetlen üzenetküldés egy kiválasztott ügynöknek, chat-szerű felületen.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Bal oldalon az ügynökök listája, jobb oldalon a kiválasztott ügynökkel folytatott beszélgetés-szál. Egy ügynökre kattintva megnyílik a vele (és mások által neki) küldött üzenetek időrendi listája.</p>
+
+      <div class="feature-block">
+        <h4>Üzenet küldése</h4>
+        <p>A szál alján egy szövegmező és a Küldés gomb.</p>
+        <div class="consequence"><strong>Következmény:</strong> az elküldött szöveg ugyanazon a csatornán jut el a célágenshez, mint amit az ügynökök egymás közt használnak: közvetlenül bekerül az ügynök élő munkamenetébe, tehát a címzett ügynök azt egy beérkező üzenetként dolgozza fel, jellemzően azonnal, nem csak egy naplóbejegyzésként fog megjelenni nála.</div>
+      </div>
+
+      <div class="no-consequence">A lista böngészése és a "Frissítés" gomb csak megjelenít, nem küld és nem módosít semmit.</div>
+
+      <div class="note">Csak olyan ügynöknek lehet innen üzenni, amelyiknek éppen fut a munkamenete (lásd <a href="#agents">Ügynökök</a>). Egy leállított ügynök nem kapja meg azonnal az üzenetet.</div>
     </section>
     <section class="chapter" id="tasks">
       <h2>Ütemezések <span class="page-key">tasks</span></h2>
