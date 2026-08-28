@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Marveen Dashboard — Felhasználói kézikönyv</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f7f7f5;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e4e4e0;
+    --accent: #c0522d;
+    --accent-soft: #fbeee7;
+    --consequence-bg: #fff4e5;
+    --consequence-border: #e0a458;
+    --todo-bg: #f3f3f3;
+    --code-bg: #f2f2ef;
+    --sidebar-w: 280px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  a { color: var(--accent); }
+
+  /* ---------- Cover ---------- */
+  .cover {
+    padding: 72px 48px 56px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+  }
+  .cover-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .cover h1 {
+    font-size: 34px;
+    margin: 10px 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .cover p.lead {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 640px;
+    margin: 0;
+  }
+  .cover .meta {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ---------- Draft status box (for Marween's review only) ---------- */
+  .draft-note {
+    margin: 32px 48px 0;
+    padding: 18px 22px;
+    background: #eef4fb;
+    border: 1px solid #b9d3ec;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .draft-note h2 {
+    font-size: 14px;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #2b5f8a;
+  }
+  .draft-note ol { margin: 0; padding-left: 20px; }
+  .draft-note li { margin-bottom: 8px; }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    display: flex;
+    align-items: flex-start;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 48px 96px;
+    gap: 48px;
+  }
+  nav.toc {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    font-size: 13.5px;
+  }
+  nav.toc .toc-group-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 22px 0 6px;
+  }
+  nav.toc .toc-group-label:first-child { margin-top: 0; }
+  nav.toc ul { list-style: none; margin: 0; padding: 0; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a {
+    display: block;
+    padding: 5px 8px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: var(--fg);
+  }
+  nav.toc a:hover { background: var(--accent-soft); }
+  nav.toc a.todo { color: var(--muted); }
+  nav.toc a.todo::after { content: " ·"; }
+
+  main { flex: 1; min-width: 0; }
+
+  /* ---------- Chapters ---------- */
+  section.chapter {
+    padding-top: 8px;
+    margin-bottom: 64px;
+    scroll-margin-top: 20px;
+  }
+  section.chapter > .chapter-group-label {
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  section.chapter h2 {
+    font-size: 24px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 12px;
+  }
+  section.chapter .page-key {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  section.chapter h3 { font-size: 17px; margin: 28px 0 8px; }
+  section.chapter h4 { font-size: 14.5px; margin: 20px 0 6px; }
+  .purpose {
+    font-size: 15.5px;
+    color: #333;
+    margin: 14px 0 22px;
+  }
+  .screenshot {
+    margin: 18px 0 26px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .screenshot img { display: block; width: 100%; height: auto; }
+  .screenshot-caption {
+    font-size: 12.5px;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  .screenshot-pending {
+    margin: 18px 0 26px;
+    padding: 22px;
+    border: 1px dashed #c9b8a3;
+    border-radius: 8px;
+    background: #fbf8f4;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+
+  .feature-block {
+    border-left: 3px solid var(--border);
+    padding: 4px 0 4px 16px;
+    margin: 16px 0;
+  }
+  .feature-block h4 { margin-top: 0; }
+  .feature-block p { margin: 6px 0; font-size: 14.5px; }
+
+  .consequence {
+    margin: 10px 0 4px;
+    padding: 10px 14px;
+    background: var(--consequence-bg);
+    border-left: 3px solid var(--consequence-border);
+    border-radius: 4px;
+    font-size: 13.5px;
+  }
+  .consequence strong { color: #8a5a1e; }
+
+  .no-consequence {
+    margin: 14px 0 4px;
+    padding: 10px 14px;
+    background: #eef7ee;
+    border-left: 3px solid #6fae6f;
+    border-radius: 4px;
+    font-size: 13.5px;
+    color: #34613a;
+  }
+
+  .note {
+    margin: 14px 0;
+    padding: 10px 14px;
+    background: #f2f2f2;
+    border-left: 3px solid #999;
+    border-radius: 4px;
+    font-size: 13.5px;
+    color: #444;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+
+  .todo-chapter {
+    padding: 18px 20px;
+    background: var(--todo-bg);
+    border: 1px dashed #bbb;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .todo-chapter strong { color: #555; }
+
+  .group-divider {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 48px 0 376px;
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-top: -24px;
+    margin-bottom: 8px;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  th { background: var(--bg-alt); }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-eyebrow">Marveen — telepítési és beállítási segédlet</div>
+  <h1>Dashboard felhasználói kézikönyv</h1>
+  <p class="lead">A webes Dashboard (<code>http://localhost:3420</code>) minden oldalának áttekintése: mire való, milyen funkciók érhetők el rajta, és — ahol releváns — mi történik pontosan, ha megnyomsz egy gombot.</p>
+  <div class="meta">Vázlat állapot · 2026-08-28 · Készíti: Archie · Ellenőrzi: Marween</div>
+</div>
+
+<div class="draft-note">
+  <h2>Marweennek — mielőtt tovább írom a többi 21 fejezetet</h2>
+  <ol>
+    <li><strong>Screenshotok adatforrása nyitott kérdés.</strong> A recept működik (localhost:3420, rendszer-Chrome, <code>switchPage</code>), de a te élő példányodon valódi ügyfél-érzékeny adat látszik (biztonsági sebezhetőség-kártyák, valódi ügyfélnevek). Ezt már jeleztem inter-agent üzenetben — a Kanban fejezet screenshotja emiatt egyelőre <em>placeholder</em>. Az Áttekintés mintaképen az Aktivitás-panelt (ugyanígy valódi belső adat) elrejtettem, csak a statisztika-csempéket és a csapat-gráfot mutatja.</li>
+    <li><strong>"Dokumentáció" mint 23. fejezet.</strong> A 22 oldalon felül a sidebar alján külön álló "Dokumentáció" link (<code>data-page="docs"</code>) is valódi, önálló oldal (<code>loadDocs()</code>) — ezt beillesztettem utolsó fejezetként, a menü tényleges sorrendjét követve (a csoportok után, legalul). Szólj, ha nem kell.</li>
+    <li><strong>"Csapat" (<code>nav.team</code>) NEM kap önálló fejezetet.</strong> A kódban <code>switchPage('team')</code> automatikusan <code>'agents'</code>-re irányít át ("team' is merged into 'agents'") — tehát ez egy visszamenőleges átirányítás, nem élő oldal. Az Ügynökök fejezetben az "Org chart" nézetként fogom leírni.</li>
+    <li><strong>"Archivált kártyák" a Kanban alfejezete lesz</strong>, nem önálló fejezet — nincs saját sidebar-linkje (eltávolították), a Kanban tábla "Archiváltak" gombjáról érhető el. Ez egyezik azzal, hogy te is a kanban.md mellé sorolted a doksitérképeden.</li>
+    <li>A meglévő <code>docs/kanban.md</code> tartalmát NEM másoltam be szó szerint — a technikai részeket (env kulcsok, API végpontok, adatmodell) kihagytam, csak a felhasználó-szintű viselkedést és a következményeket tartottam meg. Jelezd, ha ez nem jó irány, mielőtt a többi 12, doksival rendelkező fejezetnél is ezt csinálom.</li>
+  </ol>
+</div>
+
+<div class="layout">
+  <nav class="toc">
+    <ul>
+      <li><a href="#overview">Áttekintés</a></li>
+      <li><a href="#kanban">Kanban</a></li>
+      <li><a href="#approvals" class="todo">Jóváhagyások</a></li>
+    </ul>
+    <div class="toc-group-label">Csapat</div>
+    <ul>
+      <li><a href="#agents" class="todo">Ügynökök</a></li>
+      <li><a href="#activity" class="todo">Aktivitás</a></li>
+      <li><a href="#messages" class="todo">Üzenetek</a></li>
+      <li><a href="#tasks" class="todo">Ütemezések</a></li>
+      <li><a href="#bgTasks" class="todo">Háttér</a></li>
+    </ul>
+    <div class="toc-group-label">Tudás</div>
+    <ul>
+      <li><a href="#memories" class="todo">Memória</a></li>
+      <li><a href="#naplo" class="todo">Napló</a></li>
+      <li><a href="#skills" class="todo">Skillek</a></li>
+      <li><a href="#research" class="todo">Kutatás</a></li>
+      <li><a href="#ideas" class="todo">Ötletláda</a></li>
+    </ul>
+    <div class="toc-group-label">Statisztikák</div>
+    <ul>
+      <li><a href="#costs" class="todo">Költségek</a></li>
+      <li><a href="#tokenUsage" class="todo">Token Monitor</a></li>
+    </ul>
+    <div class="toc-group-label">Rendszer</div>
+    <ul>
+      <li><a href="#status" class="todo">Státusz</a></li>
+      <li><a href="#updates" class="todo">Frissítések</a></li>
+      <li><a href="#settings" class="todo">Beállítások</a></li>
+      <li><a href="#vault" class="todo">Vault</a></li>
+    </ul>
+    <div class="toc-group-label">Kapcsolatok</div>
+    <ul>
+      <li><a href="#connectors" class="todo">MCP</a></li>
+      <li><a href="#federation" class="todo">Föderáció</a></li>
+      <li><a href="#migrate" class="todo">Költöztetés</a></li>
+    </ul>
+    <div class="toc-group-label">&nbsp;</div>
+    <ul>
+      <li><a href="#docs" class="todo">Dokumentáció</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <!-- ============================================================ -->
+    <section class="chapter" id="overview">
+      <h2>Áttekintés <span class="page-key">overview</span></h2>
+
+      <p class="purpose">Egy képernyős pillantás a rendszer aktuális állapotára: hány ügynök fut éppen, hány feladat futott le ma, mennyi tudás (memória, skill) gyűlt össze, valamint a csapat felépítése és a legutóbbi tevékenységek. Ez a kezdőoldal, ide érkezel bejelentkezés után.</p>
+
+      <div class="screenshot">
+        <img src="kepek/01-attekintes.png" alt="Áttekintés oldal — statisztika-csempék és csapat-gráf">
+        <div class="screenshot-caption">Az Aktivitás-panel ezen a mintaképen szándékosan el van rejtve — lásd a fenti megjegyzést Marweennek.</div>
+      </div>
+
+      <h3>Statisztika-csempék</h3>
+      <table>
+        <tr><th>Csempe</th><th>Mit mutat</th></tr>
+        <tr><td>Aktív ügynökök</td><td>Hány ügynök folyamatban lévő munkamenete fut éppen, a beállított ügynökök teljes létszámához képest (pl. "4 összesen").</td></tr>
+        <tr><td>Ma futott feladat</td><td>Hány feladat futott le a mai napon, és zárójelben az eltérés a tegnapi naphoz képest (pl. "-29 a tegnapihoz").</td></tr>
+        <tr><td>Memória</td><td>Az összes elmentett memória-bejegyzés száma, és hány kategóriába (hot/warm/cold/shared) vannak szétosztva.</td></tr>
+        <tr><td>Generált skillek</td><td>A rendszer öntanulásából (ismétlődő munkafolyamatokból) eddig létrehozott, újrafelhasználható skillek száma, és hány készült ma.</td></tr>
+      </table>
+
+      <h3>Csapat kártya</h3>
+      <p>A főügynök és a beosztott ügynökök hierarchiája fastruktúraként, valós idejű státusszal (Fut / Áll) minden dobozon. Ugyanezt a nézetet mutatja az <a href="#agents">Ügynökök</a> oldal "Org chart" nézete is.</p>
+
+      <h3>Aktivitás kártya</h3>
+      <p>A legutóbbi ügynök-események élő listája (pl. feladat-delegálás, memória-mentés), relatív időbélyeggel ("4p", "26p"). Ugyanaz az adatforrás, mint az önálló <a href="#activity">Aktivitás</a> oldalé, csak itt csak a legutóbbi néhány esemény látszik.</p>
+
+      <div class="no-consequence">Ezen az oldalon nincs szerkeszthető vagy kattintható vezérlő — kizárólag megjelenítés, nincs olyan gomb, ami adatot törölne, módosítana vagy külső hívást indítana.</div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="chapter" id="kanban">
+      <h2>Kanban <span class="page-key">kanban</span></h2>
+
+      <p class="purpose">A csapat teljes feladatlistája egy táblán, státusz szerint oszlopokba rendezve. Ide kerül minden projekt-feladat: az orchestrator (Marween) kártyaként rögzíti, kioszt egy felelősnek, aki a kártyán állapotot vált és kommentál.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A valódi tábla jelenleg ügyfél-érzékeny kártyatartalmat mutat (lásd a fenti megjegyzés Marweennek) — a végleges kép a döntés után kerül ide.
+      </div>
+
+      <h3>Nézetváltás (fenti gombsor)</h3>
+      <div class="feature-block">
+        <h4>Tábla</h4>
+        <p>Az alap, oszlopos nézet — ez az alapértelmezett.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Idővonal</h4>
+        <p>Gantt-szerű, időrendi nézet a határidős kártyákról, heti/havi/negyedéves szűréssel és "csak lejárt/közelgő" jelölővel.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Archiváltak</h4>
+        <p>Átvált egy külön oldalra — lásd lent, <a href="#kanban-archivalt">Archivált kártyák</a>.</p>
+      </div>
+
+      <h3>Oszlopok és kártyák</h3>
+      <p>Öt oszlop: <strong>Tervezett</strong>, <strong>Folyamatban</strong>, <strong>Várakozik</strong>, <strong>Tesztelés</strong>, <strong>Kész</strong>. Minden oszlop fejlécén a kártyaszám látszik; ha az adminisztrátor korlátot (WIP-limitet) állított be az oszlopra, a szám <code>4/5</code> formátumra vált, és a kihasználtság szerint színeződik (szürke → sárga → narancs → piros, villogva, ha túllépted).</p>
+      <div class="note">A WIP-limit csak figyelmeztetés, nem tiltás — egy piros, villogó oszlopba is fel lehet venni új kártyát, a rendszer nem akadályozza meg.</div>
+
+      <div class="feature-block">
+        <h4>Új kártya ("+" gomb az oszlopfejlécben)</h4>
+        <p>Egy üres kártyát hoz létre abban az oszlopban (státuszban), ahol a gombra kattintottál.</p>
+        <div class="consequence"><strong>Következmény:</strong> a kártya azonnal létrejön és minden ügynök kontextusába bekerül — nem próba-létrehozás, rögtön éles.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Kártya mozgatása (drag & drop)</h4>
+        <p>Egy kártyát másik oszlopba húzva megváltoztatja annak státuszát.</p>
+        <div class="consequence"><strong>Következmény:</strong> az új státusz azonnal látható mindenki számára; ha a célként megjelölt oszlopnak van beállított korlátja, azt a mozgatás átlépheti (a rendszer csak figyelmeztet, nem tiltja meg a mozgatást).</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Alfeladat hozzáadása</h4>
+        <p>Egy szülő-kártya (nem alfeladat) részletező nézetében "Új alfeladat" formmal vehető fel.</p>
+        <div class="consequence"><strong>Következmény:</strong> az új alfeladat automatikusan a szülő aktuális státuszát örökli. "Kész" állapotú szülőhöz nem lehet alfeladatot felvenni — a form ilyenkor nem jelenik meg.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Alfeladat törlése</h4>
+        <p>Az alfeladat sorában megjelenő Törlés gombbal, megerősítő párbeszéd után.</p>
+        <div class="consequence"><strong>Következmény:</strong> a törlés végleges, nincs visszavonás vagy kuka. "Kész" állapotú szülőnél a törlés gomb nem jelenik meg.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Címkék</h4>
+        <p>A kártya részletező nézetében szín-kódolt címkék rendelhetők hozzá (meglévő kiválasztásával, vagy új létrehozásával), és bármelyik egy gombbal levehető. A kártyák alján legfeljebb 3 pille jelenik meg, a többit egy "+N" jelvény takarja.</p>
+        <div class="no-consequence">A címkézés nem befolyásolja a munkafolyamatot — kizárólag csoportosít és szűrhetővé tesz, adatot nem töröl és nem indít semmilyen automatikus lépést.</div>
+      </div>
+
+      <h3>Csoportosítás és szűrés</h3>
+      <p>A tábla feletti vezérlősorban: <strong>Projekt</strong> szűrő (legördülő), <strong>Csoportosítás</strong> (Nincs / Felelős szerint / Prioritás szerint — az utóbbi kettő vízszintes sávokra, ún. swimlane-ekre bontja a táblát), <strong>Oszlopok</strong> chipek (mely oszlopok legyenek láthatók), <strong>Felelős</strong> szűrő, és a címke gyors-szűrők. A választásaid a böngésződben megmaradnak, nem kell minden megnyitáskor újra beállítani.</p>
+
+      <h3>Beakadt és öregedő kártyák</h3>
+      <p>Minden nem lezárt kártyán automatikusan megjelenik, ha régóta nem mozdult: bal oldali színes csík (sárga = 1 napja, narancs = 3 napja, piros villogó = 1 hete változatlan) és egy homokóra-jelvény ("⏳ 4d") a jobb felső sarokban.</p>
+      <div class="no-consequence">Ez kizárólag vizuális figyelmeztetés — a rendszer emiatt semmit nem tesz automatikusan a kártyával, csak felhívja rá a figyelmet.</div>
+
+      <h3>Automatikus audit (4 óránként)</h3>
+      <p>A rendszer 4 óránként (8/12/16/20 órakor) magától átnézi a táblát.</p>
+      <div class="consequence"><strong>Következmény:</strong> a 7 napnál régebben "Kész" állapotba került kártyák automatikusan Archivált nézetbe kerülnek (nem törlődnek, csak lekerülnek a látható tábláról); ha egy "Folyamatban" kártya az előző audit óta nem mozdult, a rendszer üzenetet küld a felelős ügynöknek.</div>
+
+      <h3 id="kanban-archivalt">Alfejezet: Archivált kártyák</h3>
+      <p><em>Elérés: a Kanban tábla tetején az "Archiváltak" gomb (nincs önálló bal oldali menüpontja).</em></p>
+      <p>A táblán már nem látható — mert automatikusan vagy kézzel archivált —, de nem törölt kártyák dedikált, kereshető nézete.</p>
+
+      <div class="feature-block">
+        <h4>Keresés és szűrők</h4>
+        <p>Szabad szöveges keresés (cím, projekt, felelős), valamint projekt, címke és archiválási dátumtartomány szerinti szűrés.</p>
+      </div>
+
+      <div class="feature-block">
+        <h4>Visszaállítás</h4>
+        <p>Minden sorban egy "Visszaállítás" gomb.</p>
+        <div class="consequence"><strong>Következmény:</strong> a kártya azonnal visszakerül a rendes Kanban táblára "Kész" státuszban, és onnantól újra szerkeszthető, mozgatható. A művelet nincs megerősítő párbeszédhez kötve — egy kattintás, azonnal végrehajtódik.</div>
+      </div>
+
+      <div class="note">Az archivált nézet önmagában csak-olvasható: szerkesztés és státuszváltás csak a Visszaállítás után, a rendes táblán lehetséges. Alapértelmezés szerint legfeljebb 500 kártya jelenik meg egyszerre (a Beállítások oldalon módosítható).</div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="chapter" id="approvals">
+      <div class="chapter-group-label">&nbsp;</div>
+      <h2>Jóváhagyások <span class="page-key">approvals</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/heartbeat-autonomy.md</code> (a fokozatos autonómia rendszer).</div>
+    </section>
+
+    <div class="group-divider">Csapat</div>
+
+    <section class="chapter" id="agents">
+      <h2>Ügynökök <span class="page-key">agents</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/agent-fleet.md</code>. Megjegyzés: ide kerül az "Org chart" nézet leírása is (a korábbi önálló "Csapat" oldal ide lett összevonva, lásd a fenti megjegyzést).</div>
+    </section>
+    <section class="chapter" id="activity">
+      <h2>Aktivitás <span class="page-key">activity</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="messages">
+      <h2>Üzenetek <span class="page-key">messages</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/inter-agent-send-reliability.md</code>.</div>
+    </section>
+    <section class="chapter" id="tasks">
+      <h2>Ütemezések <span class="page-key">tasks</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="bgTasks">
+      <h2>Háttér <span class="page-key">bgTasks</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/background-tasks.md</code>.</div>
+    </section>
+
+    <div class="group-divider">Tudás</div>
+
+    <section class="chapter" id="memories">
+      <h2>Memória <span class="page-key">memories</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/memory-system.md</code>.</div>
+    </section>
+    <section class="chapter" id="naplo">
+      <h2>Napló <span class="page-key">naplo</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/en/naplo-audit.md</code>.</div>
+    </section>
+    <section class="chapter" id="skills">
+      <h2>Skillek <span class="page-key">skills</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="research">
+      <h2>Kutatás <span class="page-key">research</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/kutatas.md</code>.</div>
+    </section>
+    <section class="chapter" id="ideas">
+      <h2>Ötletláda <span class="page-key">ideas</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/ideabox.md</code>.</div>
+    </section>
+
+    <div class="group-divider">Statisztikák</div>
+
+    <section class="chapter" id="costs">
+      <h2>Költségek <span class="page-key">costs</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="tokenUsage">
+      <h2>Token Monitor <span class="page-key">tokenUsage</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+
+    <div class="group-divider">Rendszer</div>
+
+    <section class="chapter" id="status">
+      <h2>Státusz <span class="page-key">status</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="updates">
+      <h2>Frissítések <span class="page-key">updates</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+    <section class="chapter" id="settings">
+      <h2>Beállítások <span class="page-key">settings</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/config-reference.md</code>.</div>
+    </section>
+    <section class="chapter" id="vault">
+      <h2>Vault <span class="page-key">vault</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+    </section>
+
+    <div class="group-divider">Kapcsolatok</div>
+
+    <section class="chapter" id="connectors">
+      <h2>MCP <span class="page-key">connectors</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/connectors-hu.md</code>.</div>
+    </section>
+    <section class="chapter" id="federation">
+      <h2>Föderáció <span class="page-key">federation</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/federation.md</code>.</div>
+    </section>
+    <section class="chapter" id="migrate">
+      <h2>Költöztetés <span class="page-key">migrate</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/MIGRATION.md</code> + <code>docs/flotta-migracio.md</code>.</div>
+    </section>
+
+    <section class="chapter" id="docs">
+      <h2>Dokumentáció <span class="page-key">docs</span></h2>
+      <div class="todo-chapter"><strong>TODO — vázlat fázis, még nincs megírva.</strong> A sidebar alján külön álló link, nem a fő menücsoportok része — a dashboardon belüli beépített dokumentáció-böngésző oldala. Lásd a fenti 2. megjegyzést Marweennek.</div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
