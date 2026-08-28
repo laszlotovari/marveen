@@ -836,11 +836,64 @@
 
     <section class="chapter" id="costs">
       <h2>Költségek <span class="page-key">costs</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Havi költség-összefoglaló: eddig mennyi ment el, mire számíts hónap végéig, és hogyan áll ehhez képest egy beállított büdzsé.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Amit látsz</h3>
+      <table>
+        <tr><th>Mező</th><th>Jelentés</th></tr>
+        <tr><td>Havi eddigi költség</td><td>A folyó hónapban eddig elköltött összeg.</td></tr>
+        <tr><td>Hónap végi előrejelzés</td><td>Az eddigi ütem alapján becsült teljes havi költség.</td></tr>
+        <tr><td>Büdzsé</td><td>Ha van beállítva büdzsé-keret, a felhasználtsága százalékban, sárga/piros jelzéssel, ha közeledsz vagy túllépted.</td></tr>
+        <tr><td>Forrásonkénti bontás</td><td>Táblázat: melyik szolgáltatónál mennyi a költség.</td></tr>
+      </table>
+
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        A számok kizárólag akkor jelennek meg, ha a költség-forrás(ok) be vannak állítva. Beállítás nélkül az oldal üresen fut, egy jelzéssel, hogy nincs helyi költség-konfiguráció.
+      </div>
+
+      <div class="no-consequence">Az oldal csak megjelenít, kattintható vezérlő rajta nincs a Frissítésen kívül, ami újratölti az adatokat.</div>
+
+      <div class="note">A megjelenített token-mennyiség itt csak tájékoztató (nincs hozzá ár rendelve). Részletes, ügynökönkénti token-bontáshoz lásd a <a href="#tokenUsage">Token Monitor</a> oldalt.</div>
     </section>
     <section class="chapter" id="tokenUsage">
       <h2>Token Monitor <span class="page-key">tokenUsage</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Nyers token-fogyasztás nyomon követése ügynökönként, session-önként és időszakonként. Segít megérteni, melyik ügynök mennyit fogyaszt, mikor vannak a csúcsidőszakok, és melyik feladat volt a legdrágább.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Amit látsz</h3>
+      <div class="feature-block">
+        <h4>Összefoglaló kártyák</h4>
+        <p>Ügynökönként a teljes fogyasztás (bemenet/kimenet/cache), a hívások száma és az utolsó aktivitás időpontja. Egy kártyára kattintva az alábbi nézetek is arra az ügynökre szűkülnek.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Idővonal-diagram</h4>
+        <p>Oszlopdiagram a fogyasztás időbeli eloszlásáról, a választott időszaktól függő bontásban.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Részletes táblázat</h4>
+        <p>Egyedi hívások listája: időpont, ügynök, használt eszköz, token-bontás, tartalom-előnézet.</p>
+      </div>
+
+      <h3>Szűrők</h3>
+      <p>Időszak (1 óra / 24 óra / 7 nap / 30 nap) és ügynök szerint.</p>
+
+      <div class="feature-block">
+        <h4>Adatgyűjtés</h4>
+        <p>A "Collect" gomb kézzel indítja el az új token-adatok beolvasását.</p>
+        <div class="no-consequence">Ez csak a friss adatokat olvassa be, semmit nem töröl vagy ír felül; ugyanaz az adat kétszer nem kerül be duplán.</div>
+      </div>
+
+      <div class="note">Az adatok forrása a gépen futó Claude Code munkamenetek saját napló-fájljai. Ha egy ügynök más gépen fut (lásd <a href="#agents">Ügynökök</a>, távoli ügynök beállítás), annak fogyasztása itt nem jelenik meg. A feladatokhoz rendelés (melyik kanban-kártyához mennyi token tartozik) becsült, időablak alapján történik, nem egzakt párosítás.</div>
     </section>
 
     <div class="group-divider">Rendszer</div>
