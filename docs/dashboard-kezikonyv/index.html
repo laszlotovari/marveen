@@ -780,11 +780,56 @@
     </section>
     <section class="chapter" id="research">
       <h2>Kutatás <span class="page-key">research</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/kutatas.md</code>.</div>
+
+      <p class="purpose">Az ügynökök hosszabb, csevegésbe nem férő kutatási anyagainak (piac-elemzés, versenytárs-áttekintés, incidens-diagnózis, bármi hasonló terjedelmes) olvasható tára, hogy ne kelljen a szerverre bejelentkezni egy anyagért, amit magad kértél.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Ágensenként csoportosított lista, minden ágens neve fejlécként, alatta a saját anyagai, a legutóbb módosítottal elöl. Egy elemre kattintva jobb oldalon jelenik meg a megformázott tartalom, ahonnan az eredeti fájl le is tölthető. Amelyik ágenshez nem tartozik anyag, az meg sem jelenik.</p>
+
+      <div class="no-consequence">Ez az oldal kizárólag olvas: nincs rajta feltöltés, szerkesztés vagy törlés. Új anyag megjelenítéséhez semmit nem kell beállítani a felületen, az automatikusan felkerül, amint egy ügynök elkészíti.</div>
     </section>
     <section class="chapter" id="ideas">
       <h2>Ötletláda <span class="page-key">ideas</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/ideabox.md</code>.</div>
+
+      <p class="purpose">Könnyű ötletgyűjtő és -priorizáló felület. Egy ötlet ide kerül be, itt értékelhető, és innen válhat kanban-feladattá, mielőtt a csapat elkezdene dolgozni rajta.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Állapotok</h3>
+      <table>
+        <tr><th>Állapot</th><th>Jelentés</th></tr>
+        <tr><td>Új</td><td>Beérkezett, még nem értékelt.</td></tr>
+        <tr><td>Értékelt</td><td>Átnézve, de még nincs belőle kanban-kártya.</td></tr>
+        <tr><td>Kanbanon</td><td>Promótálva, már fut belőle feladat.</td></tr>
+        <tr><td>Elutasítva</td><td>Nem folytatódik tovább, de megmarad visszakereshetőnek.</td></tr>
+      </table>
+      <p>A lista alapból az "Aktív" (Új + Értékelt) nézetet mutatja; a fülekkel átválthatsz a Kanbanon lévőkre vagy az elutasítottakra.</p>
+
+      <h3>Impact×Effort pontozás</h3>
+      <p>Az ötlet részletes nézetében 1-5 skálán megadható, mekkora értéket teremtene (Impact) és mennyi munkát igényelne (Effort). A kettő különbsége a pontszám, ami a kártyán <code>I{szám}·E{szám}</code> formában jelenik meg. Ha egy ötlet pontszáma elég magas, bekerülhet a rendszer napi top-3 javaslatába a nyitott feladatok mellé.</p>
+
+      <div class="feature-block">
+        <h4>Elutasítás</h4>
+        <p>Az ötlet mellett a gomb, azonnal, megerősítés nélkül vált állapotot.</p>
+        <div class="consequence"><strong>Következmény:</strong> az ötlet Elutasítva állapotba kerül, kikerül az aktív listából, de nem vész el. Az "Újranyitás" gombbal bármikor visszahozható Új állapotba.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>AI-bontás / Promótálás kanban-kártyává</h4>
+        <p>Ha az ötlet elég konkrét, közvetlenül kártyává alakítható. Ha összetettebb, a "Lebont" AI-segítséggel alfeladatokra bontja, amit jóváhagyás előtt szerkeszthetsz, és megadhatsz hozzá egy siker-kritériumot is ("mikor tekintjük késznek").</p>
+        <div class="consequence"><strong>Következmény:</strong> a jóváhagyás valódi kanban-kártyát (bontás esetén kártyákat) hoz létre a táblán, ez a lépés indítja el ténylegesen a munkát.</div>
+      </div>
+
+      <div class="note">Ha egy promótált ötlet kanban-kártyáját később törlik vagy archiválják, az ötlet automatikusan visszakerül Értékelt állapotba, nem vész el nyomtalanul.</div>
+
+      <div class="no-consequence">A komment-szál és a státusz-előzmény megtekintése csak megjelenít, semmit nem módosít.</div>
+
+      <div class="note">Az Impact×Effort pontszámítás elavultsági küszöbök (mennyi napig maradhat érintetlen egy ötlet, mielőtt "Elavult" jelzést kap) és a bontás maximális alfeladat-száma a <a href="#settings">Beállítások</a> oldal Ötletláda szekciójában módosítható.</div>
     </section>
 
     <div class="group-divider">Statisztikák</div>
