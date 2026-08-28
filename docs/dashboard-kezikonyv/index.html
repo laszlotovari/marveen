@@ -1074,7 +1074,29 @@
     </section>
     <section class="chapter" id="migrate">
       <h2>Költöztetés <span class="page-key">migrate</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/MIGRATION.md</code> + <code>docs/flotta-migracio.md</code>.</div>
+
+      <p class="purpose">Korábbi, más AI-asszisztens rendszerből (nem Marveen-fleották közötti költözés, hanem egy másik termékből) származó anyagok (személyiség, memória, ütemezés, konfiguráció) átvétele egy Marveen-ügynökbe. Ez különbözik az <a href="#agents">Ügynökök</a> oldal exportálás/importálás funkciójától, ami két Marveen-telepítés közötti átvitelre való.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>1. lépés: forrás megadása</h3>
+      <p>Megadod a korábbi rendszer munkakönyvtárának útvonalát, és kiválasztod, melyik Marveen-ügynökbe kerüljön az átvett tartalom.</p>
+      <div class="feature-block">
+        <h4>Feltérképezés</h4>
+        <div class="no-consequence">Csak átvizsgálja a megadott mappát és felsorolja a talált anyagokat (személyiség, profil, memória-rétegek, heartbeat-konfig, napi napló, ütemezés), semmit nem ír be még.</div>
+      </div>
+
+      <h3>2. lépés: találatok</h3>
+      <p>A talált elemek típus és méret szerint listázva, összesítő számokkal (összesen, memória, személyiség/profil, konfiguráció).</p>
+
+      <div class="feature-block">
+        <h4>Költöztetés indítása</h4>
+        <div class="consequence"><strong>Következmény:</strong> a talált anyagok ténylegesen beíródnak a kiválasztott ügynökbe: a memória-bejegyzések a megfelelő rétegbe (hot/warm/cold/shared) kerülnek, a személyiség- és konfigurációs elemek pedig felülírják vagy kiegészítik a célügynök meglévő adatait. A végén egy összesítő mutatja, mennyi került be rétegenként.</div>
+      </div>
+
+      <div class="note">Ha egy más Marveen-telepítésről szeretnél teljes flottát (minden ügynököt, memóriát, kanban-táblát egyszerre) átköltöztetni egy új gépre, az nem ez az oldal: azt az <a href="#agents">Ügynökök</a> oldal exportálás/importálás funkciója végzi, ügynökönként vagy az egész flottára egyszerre.</div>
     </section>
 
     <section class="chapter" id="docs">
