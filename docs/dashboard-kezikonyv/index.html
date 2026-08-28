@@ -618,18 +618,109 @@
     </section>
     <section class="chapter" id="tasks">
       <h2>Ütemezések <span class="page-key">tasks</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Időzített, visszatérő feladatok kezelése: mikor és melyik ügynök fusson le, milyen utasítással. Ez az az oldal, ahol az automatikus napi összefoglalókat, emlékeztetőket és rendszeres ellenőrzéseket állítod be.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Három nézet</h3>
+      <p>Lista, Napi idővonal és Heti nézet közül választhatsz ugyanarra az adatra, a fejléc gombjaival.</p>
+
+      <h3>Két feladattípus</h3>
+      <table>
+        <tr><th>Típus</th><th>Viselkedés</th></tr>
+        <tr><td>Feladat</td><td>Minden lefutás után jelentést kapsz az eredményről.</td></tr>
+        <tr><td>Heartbeat</td><td>Csendes háttér-ellenőrzés: az ügynök csak akkor szól, ha talál valami fontosat vagy sürgőset, egyébként nem küld semmit.</td></tr>
+      </table>
+      <p>Heartbeat típusnál előre elkészített sablonok közül is választhatsz (pl. naptár-ellenőrzés, email-ellenőrzés, kanban-határidők, vagy mindhárom együtt), amik kitöltik az utasítást és az ütemezést, de utólag szabadon szerkesztheted.</p>
+
+      <h3>Új feladat / szerkesztés</h3>
+      <p>A varázslóban megadod a nevet, a felelős ügynököt, a pontos utasítást (mit ellenőrizzen vagy csináljon), és az ütemezést (naponta, hétköznap, heti egy adott napon, vagy egyéni cron-kifejezéssel).</p>
+      <div class="no-consequence">A mentés csak az ütemezést hozza létre vagy módosítja, önmagában nem futtat le semmit.</div>
+
+      <h3>Egy sor gombjai</h3>
+      <div class="feature-block">
+        <h4>Futtatás most</h4>
+        <div class="consequence"><strong>Következmény:</strong> azonnal, a szokásos időzítéstől függetlenül lefuttatja a feladatot, megerősítés nélkül.</div>
+      </div>
+      <div class="feature-block">
+        <h4>Szüneteltetés / Folytatás</h4>
+        <div class="consequence"><strong>Következmény:</strong> szüneteltetéskor a feladat a következő ütemezett időpontban sem fut le, amíg vissza nem kapcsolod. A beállítások megmaradnak.</div>
+      </div>
+      <div class="feature-block">
+        <h4>Törlés</h4>
+        <div class="consequence"><strong>Következmény:</strong> megerősítés után véglegesen törli az ütemezést. A korábbi lefutások előzménye nem vész el, de új lefutás többé nem lesz belőle.</div>
+      </div>
+      <div class="feature-block">
+        <h4>Előzmények</h4>
+        <p>Megmutatja a feladat korábbi lefutásait és azok eredményét.</p>
+      </div>
+
+      <div class="note">Egy feladat csak akkor tud lefutni, ha a felelős ügynök munkamenete éppen fut (lásd <a href="#agents">Ügynökök</a>). Ha egy ütemezett indításkor az ügynök épp foglalt, a rendszer később újra próbálja, ezt a lista tetején egy külön sáv jelzi, ahonnan a várakozó újrapróbálkozás vissza is vonható.</div>
     </section>
     <section class="chapter" id="bgTasks">
       <h2>Háttér <span class="page-key">bgTasks</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/background-tasks.md</code>.</div>
+
+      <p class="purpose">Egyszeri, hosszabb ideig tartó feladatok indítása leválasztott (háttér-) módban: elindítod, közben mással foglalkozhatsz, és amikor kész, a szokásos csatornán (Telegram/Slack) is jelez. Hosszú kutatáshoz, batch-feldolgozáshoz, buildhez való, nem interaktív, gyakori döntést igénylő munkához.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Új háttér-feladat indítása</h3>
+      <p>Válaszd ki a felelős ügynököt, írd be a feladat szövegét, majd Indítás.</p>
+      <div class="consequence"><strong>Következmény:</strong> a feladat azonnal, külön folyamatban elindul, megerősítés nélkül. A feladat-leírás nem kerül közvetlenül az ügynök parancsaiba: elkülönítve, "nem megbízható adatként" kezelve fut, hogy egy véletlenül (vagy szándékosan) a leírásba kerülő utasítás ne hajtódjon végre magától.</div>
+
+      <h3>Lista</h3>
+      <p>A futó (és a "Befejezettek is" bejelölésével a lezárt) feladatok listája, státusszal.</p>
+
+      <div class="feature-block">
+        <h4>Megtekintés</h4>
+        <p>Megnyitja a feladat eddigi vagy végleges kimenetét egy ablakban.</p>
+      </div>
+
+      <div class="feature-block">
+        <h4>Megszakítás</h4>
+        <p>Megerősítő párbeszéd után.</p>
+        <div class="consequence"><strong>Következmény:</strong> a futó feladat azonnal leáll, az addig elkészült rész-eredmény elveszhet, ha a feladat épp azt nem mentette még el útközben.</div>
+      </div>
     </section>
 
     <div class="group-divider">Tudás</div>
 
     <section class="chapter" id="memories">
       <h2>Memória <span class="page-key">memories</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/memory-system.md</code>.</div>
+
+      <p class="purpose">A csapat tudásbázisának böngészése és keresése. Az ügynökök maguktól mentik ide a fontos döntéseket, preferenciákat és tanulságokat, réteges rendszerben, hogy munkamenetek között se felejtsenek.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>A négy réteg (fül)</h3>
+      <table>
+        <tr><th>Réteg</th><th>Mit tartalmaz</th></tr>
+        <tr><td>Hot</td><td>Ami éppen most zajlik: aktív feladatok, függő döntések.</td></tr>
+        <tr><td>Warm</td><td>Stabil tudás: preferenciák, konfiguráció, projekt-kontextus.</td></tr>
+        <tr><td>Cold</td><td>Hosszú távú tanulságok, korábbi döntések, archívum.</td></tr>
+        <tr><td>Shared</td><td>Más ügynököknek is releváns információ.</td></tr>
+      </table>
+      <p>Ezen felül két további fül: <strong>Gráf</strong>, ami vizuálisan mutatja az emlékek kulcsszó-kapcsolatait az ügynökök között, és <strong>Napló</strong>, ami a napi összefoglalókat listázza (részletesebben lásd a <a href="#naplo">Napló</a> fejezetet).</p>
+
+      <h3>Keresés és szűrés</h3>
+      <p>A keresőmező kétféle módban működik: <strong>Hibrid</strong> (kulcsszó és jelentés szerint egyszerre keres, akkor is talál, ha nem pontosan azt a szót írod be, ami az emlékben szerepel) és <strong>Kulcsszavas</strong> (klasszikus, pontos szóegyezés). Ügynök szerint is szűrhetsz.</p>
+
+      <h3>Új emlék</h3>
+      <p>Az "Új emlék" gombbal kézzel is felvehetsz egy bejegyzést egy ügynökhöz, réteg és kulcsszavak megadásával.</p>
+      <div class="no-consequence">Ez csak egy új bejegyzést hoz létre, meglévő emléket nem módosít vagy töröl.</div>
+
+      <h3>Költöztetés (import)</h3>
+      <p>Korábbi beszélgetések vagy jegyzetek fájlból tömegesen betölthetők egy kiválasztott ügynök memóriájába.</p>
+      <div class="consequence"><strong>Következmény:</strong> a feltöltött fájl(ok) tartalmából a rendszer emlék-bejegyzéseket készít és menti el, ez az ügynök tudásbázisát bővíti, nem próba-futás.</div>
+
+      <div class="note">A memóriáknak nincs kézi törlés gombja a felületen. A rendszer magától "halványítja" a régen nem használt emlékeket (nem jelennek meg olyan előkelő helyen a keresésben), de nem törli őket automatikusan sem, mindig visszakereshetők maradnak.</div>
     </section>
     <section class="chapter" id="naplo">
       <h2>Napló <span class="page-key">naplo</span></h2>
