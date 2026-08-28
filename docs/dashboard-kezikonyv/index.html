@@ -900,15 +900,79 @@
 
     <section class="chapter" id="status">
       <h2>Státusz <span class="page-key">status</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Nem a saját rendszered állapotát mutatja, hanem a Claude-szolgáltatásokét (Anthropic), amikre az ügynökök épülnek. Ha egy ügynök furcsán viselkedik vagy lassú, ide érdemes először benézni: lehet, hogy nem nálad van a hiba.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Felül egy összesített állapot (Működik / Akadozik / Ismeretlen), alatta szolgáltatásonkénti bontás, legalul a legutóbbi incidensek listája dátummal és állapottal (vizsgálat alatt / azonosítva / figyelve / megoldva).</p>
+
+      <div class="no-consequence">Az oldal kizárólag megjelenít, külső, nyilvános státusz-forrásból olvas. A Frissítés gomb csak újralekérdezi, semmit nem módosít.</div>
     </section>
     <section class="chapter" id="updates">
       <h2>Frissítések <span class="page-key">updates</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Itt derül ki, van-e újabb kiadott verzió, mi változott benne, és innen indítható el maga a frissítés.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Az oldal tetején a futó verzió, alatta a legutóbbi változtatások listája. Ha a rendszer nem a hivatalos kiadási ágon fut (pl. fejlesztői ágon), erre egy külön figyelmeztető sáv hívja fel a figyelmet a felület tetején is, nemcsak ezen az oldalon.</p>
+
+      <div class="feature-block">
+        <h4>Ellenőrzés</h4>
+        <p>Lekérdezi, van-e új verzió, anélkül hogy bármit is telepítene.</p>
+        <div class="no-consequence">Csak információt kér le, semmit nem módosít.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Frissítés most</h4>
+        <p>Csak akkor jelenik meg, ha valóban van elérhető frissítés. Megerősítést kér, mielőtt elindul.</p>
+        <div class="consequence"><strong>Következmény:</strong> ez egy VALÓDI, éles frissítés: lehúzza az új kódot és újraindítja az érintett szolgáltatást. Ha a rendszeren mentetlen, helyi módosítás van, a frissítés nem indul el automatikusan, hanem rákérdez, hogy azokat félretegye-e (a módosítások ilyenkor nem vesznek el, csak félreteszi őket, hogy ne ütközzenek az új kóddal). A folyamat végén a rendszer megmutatja, hogy sikeres volt-e, vagy hiba esetén visszaállt-e az előző állapotra.</div>
+      </div>
+
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        A frissítés csak a hivatalos kiadási ágon (<code>main</code>), tiszta munkakönyvtárban fut le biztonságosan. Fejlesztői ágon, vagy nem szabványos telepítésen a rendszer elutasítja az automatikus frissítést, ilyenkor kézi beavatkozás kell.
+      </div>
     </section>
     <section class="chapter" id="settings">
       <h2>Beállítások <span class="page-key">settings</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/config-reference.md</code>.</div>
+
+      <p class="purpose">A rendszer konfigurációjának központi helye. Innen módosítható a legtöbb paraméter közvetlenül a böngészőből, anélkül hogy szerverhez vagy fájlokhoz kellene hozzáférni.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Fülek (modulok)</h3>
+      <p>A beállítások funkció szerinti fülekbe vannak csoportosítva (pl. Kanban, Rendszer, Heartbeat, Ötletláda), plusz két mindig jelen lévő speciális fül: <strong>Biztonság</strong> (itt van a böngészős bejelentkezés, felhasználónév + jelszó beállítása) és <strong>Autonómia</strong> (itt állítható kategóriánként, mennyire dönthet önállóan egy ügynök, lásd a <a href="#approvals">Jóváhagyások</a> fejezetet).</p>
+
+      <h3>Egy érték módosítása</h3>
+      <p>Minden sor a kulcs nevét, rövid leírását, és egy szerkeszthető mezőt mutat (szám, szín vagy legördülő lista, a típustól függően). Módosításkor a sor "piszkosnak" jelölődik, az oldal alján egy sáv jelzi, hány módosítás vár mentésre.</p>
+
+      <div class="feature-block">
+        <h4>Mentés</h4>
+        <p>Az összes piszkos sort egyszerre menti.</p>
+        <div class="consequence"><strong>Következmény:</strong> a legtöbb beállítás azonnal, élesben érvénybe lép. Néhány kulcs mellett "Újraindítást igényel" jelvény látható, ezeknél a változás csak a szerver következő újraindítása után hat.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Visszaállítás</h4>
+        <p>Minden mentetlen módosítást visszavon, az utoljára betöltött értékekre áll vissza.</p>
+      </div>
+
+      <div class="note">Ha érvénytelen értéket adsz meg (pl. a megengedett tartományon kívüli számot), a hiba a sor alatt jelenik meg mentés után. A többi, érvényes sor ettől függetlenül elmentődik, csak a hibás marad javításra várva.</div>
+
+      <div class="note">Ha mentetlen módosítással hagynád el az oldalt, a böngésző rákérdez. Ha megszakítod a navigációt, a módosítások megmaradnak.</div>
+
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        A beállítások három rétegben oldódnak fel: amit itt mentesz (elsőbbséget élvez), a projekt <code>.env</code> fájlja, majd a beépített alapérték. A titkos jellegű kulcsok (pl. API-kulcsok) értéke sosem jelenik meg a felületen, csak az, hogy be van-e állítva.
+      </div>
     </section>
     <section class="chapter" id="vault">
       <h2>Vault <span class="page-key">vault</span></h2>
