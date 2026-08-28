@@ -976,7 +976,39 @@
     </section>
     <section class="chapter" id="vault">
       <h2>Vault <span class="page-key">vault</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">Titkosított tároló API-kulcsoknak, jelszavaknak és SSH hozzáféréseknek, amiket a rendszer különböző integrációi (pl. MCP szerverek, távoli ügynökök) használnak. A kulcsok kizárólag a helyi gépen tárolódnak, titkosítva (AES-256-GCM), és sosem hagyják el a rendszert.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Kulcsok</h3>
+      <div class="feature-block">
+        <h4>Új kulcs</h4>
+        <p>Manuálisan felveszel egy nevet és egy titkos értéket.</p>
+      </div>
+      <div class="feature-block">
+        <h4>Törlés</h4>
+        <p>A kulcs kártyáján, megerősítés után.</p>
+        <div class="consequence"><strong>Következmény:</strong> a törlés végleges. Ha egy MCP szerver ehhez a kulcshoz volt kötve, az onnantól nem fér hozzá az értékhez, amíg új kulcsot nem rendelsz hozzá.</div>
+      </div>
+
+      <h3>Scan &amp; Import</h3>
+      <p>Átvizsgálja a rendszeren található MCP-konfigurációs fájlokat, és megkeresi bennük a nyílt szövegként ottfelejtett, érzékenynek tűnő értékeket (pl. API-kulcsokat).</p>
+      <div class="consequence"><strong>Következmény:</strong> a találatok listája csak megjelenik, önmagában semmit nem módosít. Amit ezután kijelölsz importálásra, az bekerül a titkosított Vault-ba.</div>
+
+      <h3>Hozzárendelés és Szinkron</h3>
+      <p>A "Hozzárendelés" egy Vault-kulcsot köt össze egy adott MCP szerver konfigurációjával. A "Szinkron" ezután a kötések alapján visszaírja a Vault aktuális értékeit a szerverek <code>.mcp.json</code> fájljaiba.</p>
+      <div class="consequence"><strong>Következmény:</strong> a Szinkron ténylegesen módosítja a lemezen lévő konfigurációs fájlokat, hogy a hozzájuk tartozó szolgáltatás a friss értéket lássa. Ha egy kulcsot időközben megváltoztattál a Vault-ban, ez a lépés viszi át a változást a valódi konfigurációba.</div>
+
+      <h3>Távoli gépek (SSH)</h3>
+      <p>Külön szekcióban SSH-szerverek és -kulcsok is kezelhetők, amiket a távoli ügynökök eléréséhez használ a rendszer (lásd <a href="#agents">Ügynökök</a>). Hozzáadás, szerkesztés és törlés ugyanúgy működik, mint a sima kulcsoknál, törléskor megerősítéssel.</p>
+
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        Ez a legjobb hely arra, hogy egy ügyfélnél az MCP-integrációkhoz szükséges API-kulcsokat biztonságosan rögzítsd, ahelyett hogy azok nyílt szövegként maradnának egy konfigurációs fájlban.
+      </div>
     </section>
 
     <div class="group-divider">Kapcsolatok</div>
