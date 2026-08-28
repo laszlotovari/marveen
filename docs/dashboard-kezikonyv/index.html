@@ -724,11 +724,59 @@
     </section>
     <section class="chapter" id="naplo">
       <h2>Napló <span class="page-key">naplo</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/en/naplo-audit.md</code>.</div>
+
+      <p class="purpose">Egységes, csak-olvasható eseménynapló: mi történt a rendszerben (beállítás-változás, ötlet állapotváltás, fájl-esemény), ki és mikor tette. Auditáláshoz és nyomkövetéshez való, nem szerkeszthető felület.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Öt forrás-fül</h3>
+      <table>
+        <tr><th>Fül</th><th>Mit mutat</th></tr>
+        <tr><td>Összes</td><td>Minden forrás egy közös, időrendi listában.</td></tr>
+        <tr><td>Eseménynapló</td><td>Az ügynökök és a rendszer általános eseményei.</td></tr>
+        <tr><td>Konfig</td><td>Beállítás-változások (pl. melyik kulcs milyen értékről milyenre változott, ki és mikor). A titkos értékek (pl. API kulcsok) sosem kerülnek be, csak az a tény, hogy változott valami.</td></tr>
+        <tr><td>Ötletek</td><td>Az Ötletláda állapotváltásai (pl. "új" -> "kanbanra emelve", vagy visszafordítás).</td></tr>
+        <tr><td>Tárolt fájlok</td><td>A rendszer adattárolójában (nem a saját rendszerfájlokban) létrejött fájl-események, ha megállapítható, a létrehozó ügynök nevével.</td></tr>
+      </table>
+
+      <h3>Szűrők</h3>
+      <p><strong>Dátumtartomány</strong> ("Ettől"/"Eddig", mindkettő opcionális), és <strong>szabad szöveges keresés</strong>, ami a kulcs, útvonal, megjegyzés és a kezdeményező mezőkben egyszerre keres.</p>
+
+      <div class="no-consequence">A fülek, a szűrők és a "Frissítés" gomb kizárólag a listát szűkítik vagy töltik újra, semmit nem módosítanak.</div>
+
+      <div class="note">Az oldal teljesen csak-olvasható: bejegyzés innen nem szerkeszthető és nem törölhető kézzel. A bejegyzések egy automatikus, napi takarítás során törlődnek, ha egy beállított napszámnál (alapértelmezés: 90 nap) régebbiek, ez a <a href="#settings">Beállítások</a> oldalon módosítható.</div>
     </section>
     <section class="chapter" id="skills">
       <h2>Skillek <span class="page-key">skills</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Nincs meglévő doksi, felület + forráskód alapján készül.</div>
+
+      <p class="purpose">A rendszer által (vagy kézzel) létrehozott, újrafelhasználható munkafolyamat-leírások katalógusa. Egy skill lényegében egy elmentett "tudja, hogyan kell csinálni" recept, amit egy ügynök felismer és automatikusan alkalmaz, ha hasonló helyzetbe kerül.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Globális és ügynök-szintű skillek</h3>
+      <p>A globális skillek minden ügynök számára elérhetők, az ügynök-szintűek csak az adott ügynöknél élnek. Bal oldalt kategória szerint szűrhetsz, a keresőmezővel név vagy leírás szerint kereshetsz.</p>
+
+      <div class="feature-block">
+        <h4>Új skill</h4>
+        <p>Kétféleképpen: kézzel megírva (név + leírás) vagy egy fájl importálásával.</p>
+        <div class="no-consequence">Létrehozáskor csak egy új skill jön létre, meglévőt nem érint.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Törlés</h4>
+        <p>Egy skill mellett a kuka-ikon, megerősítés után.</p>
+        <div class="consequence"><strong>Következmény:</strong> a törlés végleges. Ha egy ügynök korábban ezt a skillt használta valamilyen ismétlődő feladathoz, a törlés után elölről kell "megtanulnia" a folyamatot.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Exportálás</h4>
+        <p>Az összes skillt egyetlen zip-fájlba menti, letöltésre.</p>
+        <div class="no-consequence">Ez csak másolatot készít, a meglévő skilleket nem módosítja.</div>
+      </div>
     </section>
     <section class="chapter" id="research">
       <h2>Kutatás <span class="page-key">research</span></h2>
