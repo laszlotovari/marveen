@@ -1015,11 +1015,62 @@
 
     <section class="chapter" id="connectors">
       <h2>MCP <span class="page-key">connectors</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/connectors-hu.md</code>.</div>
+
+      <p class="purpose">Az ügynökök által elérhető külső eszközök (MCP szerverek) áttekintése és kezelése: mit tud elérni egy ügynök a beszélgetésen és a saját tudásán túl, pl. naptárt, email-fiókot, üzleti API-kat.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <p>Az itt listázott MCP-k a Claude Code-hoz kapcsolt szerverek: a claude.ai fiókodon engedélyezett integrációk, a marketplace-ből telepített kiegészítők, és a helyi konfigurációban felvettek. Minden ügynök automatikusan látja őket, mert ugyanabból a felhasználói profilból dolgoznak.</p>
+
+      <div class="note">Ha egy MCP már be van kapcsolva a claude.ai fiókodon, NE vedd fel újra itt helyi konfigurációként: duplikálódik, és a rendszer a helyi változatot részesíti előnyben, ami zavaró működést okozhat.</div>
+
+      <div class="feature-block">
+        <h4>Új connector</h4>
+        <p>Kézzel felvehetsz egy MCP szervert (pl. egy saját vagy harmadik féltől kapott integrációt), és kiválaszthatod, mely ügynökök férjenek hozzá.</p>
+        <div class="consequence"><strong>Következmény:</strong> a hozzáadott connector azonnal elérhetővé válik a kijelölt ügynököknek, azok onnantól használhatják az általa kínált eszközöket.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Törlés</h4>
+        <p>A connector részletező nézetében, megerősítés után.</p>
+        <div class="consequence"><strong>Következmény:</strong> az adott eszközök onnantól nem elérhetők egyik ügynöknek sem, amíg újra fel nem veszed.</div>
+      </div>
+
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        Az oldalon egy kiemelt ajánlat is szerepel a connectors.hu szolgáltatásra: magyar és nemzetközi üzleti API-k (pl. NAV Online Számla, Billingo, Wise) egységes, hosztolt MCP-n keresztül, saját fiókkal bekötve. Ha egy ügyfélnek konkrét üzleti integráció kell, ez gyorsabb út, mint egyedi fejlesztés.
+      </div>
     </section>
     <section class="chapter" id="federation">
       <h2>Föderáció <span class="page-key">federation</span></h2>
-      <div class="todo-chapter"><strong>TODO: vázlat fázis, még nincs megírva.</strong> Tartalmi forrás: <code>docs/federation.md</code>.</div>
+
+      <p class="purpose">Két különálló Marveen-telepítés (pl. egy irodai és egy otthoni gépen futó) összekötése, hogy a két rendszer ügynökei üzenetet válthassanak és feladatot delegálhassanak egymásnak, miközben mindkét rendszer önálló marad. Alapból teljesen ki van kapcsolva, bekapcsolásig a rendszer úgy viselkedik, mintha ez a funkció nem is létezne.</p>
+
+      <div class="screenshot-pending">
+        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      </div>
+
+      <h3>Fő kapcsoló</h3>
+      <div class="consequence"><strong>Következmény:</strong> bekapcsolás után a rendszer elkezd válaszolni a társrendszer kéréseire és képes hozzá üzenetet küldeni. Kikapcsolás azonnali és veszteségmentes: a társ-lista és a tokenek megmaradnak, újra bekapcsoláskor nem kell újra párosítani. Kikapcsoláskor a folyamatban lévő, még el nem ért üzenetek végleg meghiúsultként zárulnak, nem próbálkozik velük tovább a rendszer.</div>
+
+      <h3>Társ hozzáadása (párosítás)</h3>
+      <p>Mindkét gépen fel kell venni a másikat: egy azonosítót és a másik rendszer címét adod meg. A felület ekkor generál egy tokent, amit a másik gép oldalán be kell másolni, és fordítva, a másik gép tokenjét ide. Csak a kölcsönös token-csere után válik a kapcsolat élővé.</p>
+      <div class="consequence"><strong>Következmény:</strong> a token-csere gombja azonnal érvényteleníti a régi tokent, az újat pedig a társ oldalán is át kell vezetni, különben a kapcsolat megszakad, amíg mindkét oldal frissül.</div>
+
+      <h3>Delegálási mód</h3>
+      <p>Azt szabályozza, mennyire adja át a fő-ügynök a szakterületi kéréseket a társrendszer megfelelő szakértőjének: "Mindig a szakértőnek", "Szakértőnek, ha van rá" (ez az alapértelmezett), vagy "Szakértőnek, ha muszáj".</p>
+
+      <h3>Beállítások életbe léptetése</h3>
+      <p>Egy már futó rendszeren a társ- vagy beállítás-változás nem lép azonnal érvénybe, amíg a fő-ügynök munkamenete újra nem indul.</p>
+      <div class="consequence"><strong>Következmény:</strong> ez a gomb célzottan újraindítja a fő-ügynök munkamenetét (a dashboard és a többi ügynök közben tovább fut), hogy a friss beállítások érvénybe lépjenek. Terminál-parancs nem kell hozzá, de a fő-ügynökkel a újraindítás pillanatában megszakad a folyamatban lévő beszélgetés.</div>
+
+      <h3>Biztonsági keretezés (mindig érvényes)</h3>
+      <p>A társrendszertől érkező tartalmat a fogadó ügynök mindig adatként kezeli, sosem közvetlen utasításként, akkor is, ha egyébként megengedő az együttműködési beállítás. Ez nem módosítható és nem kapcsolható ki a felületről: egy visszafordíthatatlan vagy kifelé irányuló művelet (törlés, fizetés, publikálás) a társrendszer kérésére is a rendszergazda jóváhagyását igényli.</p>
+
+      <h3>Veszélyzóna: teljes eltávolítás</h3>
+      <div class="consequence"><strong>Következmény:</strong> egy adott társ teljes eltávolítása törli a konfigurációját és a tokeneket, lezárja a függőben lévő üzeneteit, és eltünteti a hozzá tartozó bejegyzést az ügynökök beállítás-fájljaiból. A művelet csak a te oldaladon hat: a másik rendszeren a párosítást ott is külön meg kell szüntetni, erről a rendszer nem tud automatikusan értesíteni.</div>
     </section>
     <section class="chapter" id="migrate">
       <h2>Költöztetés <span class="page-key">migrate</span></h2>
