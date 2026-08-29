@@ -87,6 +87,14 @@ async function dismissSetupBanners(page: import('@playwright/test').Page) {
   }
 }
 
+// Defensive: #toast is position:fixed with a 3s auto-hide (web/app.js
+// showToast()); if a page load ever fires one, force it hidden rather than
+// race its timeout. (Not the cause of the black-box artifact below --
+// verified by pixel-diffing screenshots with and without this call.)
+async function hideToast(page: import('@playwright/test').Page) {
+  await page.evaluate(() => document.getElementById('toast')?.classList.remove('visible'))
+}
+
 for (const shot of SHOTS) {
   test(`capture: ${shot.name}`, async ({ page }) => {
     await page.goto(`/?token=${TOKEN}`)
@@ -97,6 +105,17 @@ for (const shot of SHOTS) {
     await page.waitForTimeout(600) // let the page's own load*() fetch + render settle
     await dismissSetupBanners(page)
     if (shot.after) await shot.after(page)
+    await hideToast(page)
+    // Chromium's fullPage screenshot stitches multiple viewport-sized frames
+    // together for any page taller than the configured viewport, and that
+    // stitching pass reliably left a solid black rounded-rect compositing
+    // glitch at the same pixel offset (704,952) on every page that needed
+    // more than one frame -- confirmed by pixel-scanning several captures.
+    // Growing the viewport to the page's actual scrollHeight first means a
+    // single-frame capture covers everything, so `fullPage` never has to
+    // stitch, sidestepping the glitch entirely.
+    const contentHeight = await page.evaluate(() => document.documentElement.scrollHeight)
+    await page.setViewportSize({ width: 1440, height: contentHeight })
     await page.screenshot({ path: path.join(KEPEK_DIR, `${shot.name}.png`), fullPage: true })
   })
 }
