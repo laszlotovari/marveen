@@ -59,25 +59,6 @@
     color: var(--muted);
   }
 
-  /* ---------- Draft status box (for Marween's review only) ---------- */
-  .draft-note {
-    margin: 32px 48px 0;
-    padding: 18px 22px;
-    background: #eef4fb;
-    border: 1px solid #b9d3ec;
-    border-radius: 8px;
-    font-size: 14px;
-  }
-  .draft-note h2 {
-    font-size: 14px;
-    margin: 0 0 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #2b5f8a;
-  }
-  .draft-note ol { margin: 0; padding-left: 20px; }
-  .draft-note li { margin-bottom: 8px; }
-
   /* ---------- Layout ---------- */
   .layout {
     display: flex;
@@ -277,20 +258,7 @@
   <div class="cover-eyebrow">Marveen telepítési és beállítási segédlet</div>
   <h1>Dashboard felhasználói kézikönyv</h1>
   <p class="lead">A webes Dashboard (<code>http://localhost:3420</code>) minden oldalának áttekintése: mire való, milyen funkciók érhetők el rajta, és, ahol releváns, mi történik pontosan, ha megnyomsz egy gombot.</p>
-  <div class="meta">Vázlat állapot · 2026-08-28 · Készíti: Archie · Ellenőrzi: Marween</div>
-</div>
-
-<div class="draft-note">
-  <h2>Marweennek: mind a 23 fejezet kész, ez a maradék nyitott lista</h2>
-  <ol>
-    <li><strong>Screenshotok: minden fejezetben placeholder, a demo-példányra vár.</strong> A recept működik (localhost:3420, rendszer-Chrome, <code>switchPage</code>, bannerek elrejtve), de amíg nincs döntés a demo/generikus adatforrásról (lásd a msg 361/363 utáni egyeztetésünket), addig minden fejezet screenshot-helye "Screenshot még nincs beillesztve" placeholder. Az Áttekintés fejezetben az EGYETLEN kivétel: ott van egy tényleges, biztonságosnak ítélt kép (Aktivitás-panel elrejtve), mintának.</li>
-    <li><strong>"Dokumentáció" mint 23. fejezet.</strong> A 22 oldalon felül a sidebar alján külön álló "Dokumentáció" link (<code>data-page="docs"</code>) is valódi, önálló oldal (<code>loadDocs()</code>). Beillesztettem utolsó fejezetként, a menü tényleges sorrendjét követve (a csoportok után, legalul). Megírva.</li>
-    <li><strong>"Csapat" (<code>nav.team</code>) NEM kapott önálló fejezetet</strong> (a kódban automatikusan <code>agents</code>-re irányít át), az Ügynökök fejezetben van leírva "Org chart" nézetként.</li>
-    <li><strong>"Archivált kártyák" a Kanban alfejezete lett</strong>, nem önálló fejezet, mert nincs saját sidebar-linkje, a Kanban tábla "Archiváltak" gombjáról érhető el.</li>
-    <li><strong>Két doksi-mappelési pontosítás, amit menet közben találtam</strong> (nem a te hibád, csak jelzem, hogy a végleges anyagban is ez lesz irányadó): a <code>tokenUsage</code> fejezethez MÉGIS van doksi (<code>docs/token-usage.md</code>, nem hiányzik, ahogy a térkép jelezte); a <code>messages</code> és <code>migrate</code> fejezetekhez rendelt doksik (<code>inter-agent-send-reliability.md</code>, <code>MIGRATION.md</code>, <code>flotta-migracio.md</code>) más rétegről szólnak, mint amit a tényleges dashboard-oldal csinál (fejlesztői küldés-megbízhatóság, ill. Laci saját gépköltöztetési runbookja / teljes flotta export-import), ezért azokat a fejezeteket a felület + forráskód alapján írtam meg, nem a megadott doksiból.</li>
-    <li>A meglévő doksikat (kanban.md, archivalt-kartyak.md, naplo-audit.md, ideabox.md, kutatas.md, config-reference.md stb.) sehol nem másoltam be szó szerint: a technikai részeket (env kulcsok, API végpontok, adatmodell) mindenhol kihagytam, csak a felhasználó-szintű viselkedést és a következményeket tartottam meg.</li>
-    <li><strong>Telepítőnek-dobozok:</strong> a Költségek, Aktivitás, Frissítések, Beállítások, Vault, MCP fejezetekben szerepelnek, ahol tényleges fájlt/kulcsot/beállítást érint a funkció.</li>
-  </ol>
+  <div class="meta">2026-08-29 · Készíti: Archie · Ellenőrzi: Marween</div>
 </div>
 
 <div class="layout">
@@ -350,7 +318,7 @@
 
       <div class="screenshot">
         <img src="kepek/01-attekintes.png" alt="Áttekintés oldal: statisztika-csempék és csapat-gráf">
-        <div class="screenshot-caption">Az Aktivitás-panel ezen a mintaképen szándékosan el van rejtve, lásd a fenti megjegyzést Marweennek.</div>
+        <div class="screenshot-caption">Áttekintés oldal, minta-adatokkal.</div>
       </div>
 
       <h3>Statisztika-csempék</h3>
@@ -377,8 +345,9 @@
 
       <p class="purpose">A csapat teljes feladatlistája egy táblán, státusz szerint oszlopokba rendezve. Ide kerül minden projekt-feladat: az orchestrator (Marween) kártyaként rögzíti, kioszt egy felelősnek, aki a kártyán állapotot vált és kommentál.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A valódi tábla jelenleg ügyfél-érzékeny kártyatartalmat mutat (lásd a fenti megjegyzés Marweennek), a végleges kép a döntés után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/02-kanban.png" alt="Kanban tábla, öt oszloppal">
+        <div class="screenshot-caption">Kanban tábla, minta-projektekkel.</div>
       </div>
 
       <h3>Nézetváltás (fenti gombsor)</h3>
@@ -465,8 +434,9 @@
 
       <p class="purpose">Az ügynökök jóváhagyást igénylő kéréseinek gyűjtőhelye. Ha egy ügynök egy olyan kategóriájú műveletet szeretne végrehajtani, amit a beállított autonómia-szint szerint előbb jóvá kell hagyatnia, itt jelenik meg a kérés, határidővel.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/03-jovahagyasok.png" alt="Jóváhagyások oldal, statisztika-csempékkel és a kérések táblázatával">
+        <div class="screenshot-caption">Jóváhagyások oldal, minta-adatokkal.</div>
       </div>
 
       <div class="note">Ez az oldal a konkrét, egyedi kéréseket mutatja. Az, hogy egy kategória (pl. "email küldés" vagy "kártya archiválás") milyen szinten legyen automatizálva, a <a href="#settings">Beállítások</a> oldal Autonómia füle alatt állítható.</div>
@@ -516,8 +486,9 @@
 
       <p class="purpose">A teljes ügynök-flotta kezelése egy helyen: kik dolgoznak, milyen szerepben, milyen modellel, és élnek-e éppen. Innen hozol létre új ügynököt, itt állítod le/indítod el, és itt viszed át egyik gépről a másikra.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/04-ugynokok.png" alt="Ügynökök oldal, kártyás nézetben">
+        <div class="screenshot-caption">Ügynökök oldal, kártyás nézetben.</div>
       </div>
 
       <h3>Két nézet</h3>
@@ -572,8 +543,9 @@
 
       <p class="purpose">Élő, valós idejű állapotkép minden futó ügynökről: éppen dolgozik, tétlen, hibára futott, vagy le van állítva. Az oldal 3 másodpercenként frissül magától, amíg nyitva van. Ne keverd össze az <a href="#overview">Áttekintés</a> Aktivitás-kártyájával: az egy eseménynapló (mit csinált egy ügynök), ez itt a jelenlegi állapot.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/05-aktivitas.png" alt="Aktivitás oldal, élő állapotjelvényekkel">
+        <div class="screenshot-caption">Aktivitás oldal, minta-ügynökökkel.</div>
       </div>
 
       <h3>Állapotjelvények</h3>
@@ -602,8 +574,9 @@
 
       <p class="purpose">Az ügynökök egymás közötti üzenetváltásának megtekintése, és közvetlen üzenetküldés egy kiválasztott ügynöknek, chat-szerű felületen.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/06-uzenetek.png" alt="Üzenetek oldal, ügynök-lista és beszélgetés-szál">
+        <div class="screenshot-caption">Üzenetek oldal, minta-beszélgetéssel.</div>
       </div>
 
       <p>Bal oldalon az ügynökök listája, jobb oldalon a kiválasztott ügynökkel folytatott beszélgetés-szál. Egy ügynökre kattintva megnyílik a vele (és mások által neki) küldött üzenetek időrendi listája.</p>
@@ -623,8 +596,9 @@
 
       <p class="purpose">Időzített, visszatérő feladatok kezelése: mikor és melyik ügynök fusson le, milyen utasítással. Ez az az oldal, ahol az automatikus napi összefoglalókat, emlékeztetőket és rendszeres ellenőrzéseket állítod be.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/07-utemezesek.png" alt="Ütemezések oldal, feladat-listával">
+        <div class="screenshot-caption">Ütemezések oldal, minta-feladatokkal.</div>
       </div>
 
       <h3>Három nézet</h3>
@@ -667,8 +641,9 @@
 
       <p class="purpose">Egyszeri, hosszabb ideig tartó feladatok indítása leválasztott (háttér-) módban: elindítod, közben mással foglalkozhatsz, és amikor kész, a szokásos csatornán (Telegram/Slack) is jelez. Hosszú kutatáshoz, batch-feldolgozáshoz, buildhez való, nem interaktív, gyakori döntést igénylő munkához.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/08-hatter.png" alt="Háttér oldal, futó és lezárt feladatokkal">
+        <div class="screenshot-caption">Háttér oldal, minta-feladatokkal.</div>
       </div>
 
       <h3>Új háttér-feladat indítása</h3>
@@ -697,8 +672,9 @@
 
       <p class="purpose">A csapat tudásbázisának böngészése és keresése. Az ügynökök maguktól mentik ide a fontos döntéseket, preferenciákat és tanulságokat, réteges rendszerben, hogy munkamenetek között se felejtsenek.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/09-memoria.png" alt="Memória oldal, réteg-fülekkel">
+        <div class="screenshot-caption">Memória oldal, minta-bejegyzésekkel.</div>
       </div>
 
       <h3>A négy réteg (fül)</h3>
@@ -729,8 +705,9 @@
 
       <p class="purpose">Egységes, csak-olvasható eseménynapló: mi történt a rendszerben (beállítás-változás, ötlet állapotváltás, fájl-esemény), ki és mikor tette. Auditáláshoz és nyomkövetéshez való, nem szerkeszthető felület.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/10-naplo.png" alt="Napló oldal, forrás-fülekkel és eseménylistával">
+        <div class="screenshot-caption">Napló oldal, minta-bejegyzésekkel.</div>
       </div>
 
       <h3>Öt forrás-fül</h3>
@@ -755,8 +732,9 @@
 
       <p class="purpose">A rendszer által (vagy kézzel) létrehozott, újrafelhasználható munkafolyamat-leírások katalógusa. Egy skill lényegében egy elmentett "tudja, hogyan kell csinálni" recept, amit egy ügynök felismer és automatikusan alkalmaz, ha hasonló helyzetbe kerül.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/11-skillek.png" alt="Skillek oldal, katalógus-nézetben">
+        <div class="screenshot-caption">Skillek oldal, minta-skillekkel.</div>
       </div>
 
       <h3>Globális és ügynök-szintű skillek</h3>
@@ -785,8 +763,9 @@
 
       <p class="purpose">Az ügynökök hosszabb, csevegésbe nem férő kutatási anyagainak (piac-elemzés, versenytárs-áttekintés, incidens-diagnózis, bármi hasonló terjedelmes) olvasható tára, hogy ne kelljen a szerverre bejelentkezni egy anyagért, amit magad kértél.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/12-kutatas.png" alt="Kutatás oldal, ágensenként csoportosított listával">
+        <div class="screenshot-caption">Kutatás oldal, minta-anyaggal.</div>
       </div>
 
       <p>Ágensenként csoportosított lista, minden ágens neve fejlécként, alatta a saját anyagai, a legutóbb módosítottal elöl. Egy elemre kattintva jobb oldalon jelenik meg a megformázott tartalom, ahonnan az eredeti fájl le is tölthető. Amelyik ágenshez nem tartozik anyag, az meg sem jelenik.</p>
@@ -798,8 +777,9 @@
 
       <p class="purpose">Könnyű ötletgyűjtő és -priorizáló felület. Egy ötlet ide kerül be, itt értékelhető, és innen válhat kanban-feladattá, mielőtt a csapat elkezdene dolgozni rajta.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/13-otletlada.png" alt="Ötletláda oldal, állapot-fülekkel">
+        <div class="screenshot-caption">Ötletláda oldal, minta-ötletekkel.</div>
       </div>
 
       <h3>Állapotok</h3>
@@ -841,8 +821,9 @@
 
       <p class="purpose">Havi költség-összefoglaló: eddig mennyi ment el, mire számíts hónap végéig, és hogyan áll ehhez képest egy beállított büdzsé.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/14-koltsegek.png" alt="Költségek oldal, havi összefoglalóval">
+        <div class="screenshot-caption">Költségek oldal, minta-adatokkal.</div>
       </div>
 
       <h3>Amit látsz</h3>
@@ -868,8 +849,9 @@
 
       <p class="purpose">Nyers token-fogyasztás nyomon követése ügynökönként, session-önként és időszakonként. Segít megérteni, melyik ügynök mennyit fogyaszt, mikor vannak a csúcsidőszakok, és melyik feladat volt a legdrágább.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/15-token-monitor.png" alt="Token Monitor oldal, összefoglaló kártyákkal és idővonal-diagrammal">
+        <div class="screenshot-caption">Token Monitor oldal, minta-adatokkal.</div>
       </div>
 
       <h3>Amit látsz</h3>
@@ -905,8 +887,9 @@
 
       <p class="purpose">Nem a saját rendszered állapotát mutatja, hanem a Claude-szolgáltatásokét (Anthropic), amikre az ügynökök épülnek. Ha egy ügynök furcsán viselkedik vagy lassú, ide érdemes először benézni: lehet, hogy nem nálad van a hiba.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/16-statusz.png" alt="Státusz oldal, szolgáltatásonkénti bontással">
+        <div class="screenshot-caption">Státusz oldal, a Claude-szolgáltatások állapotával.</div>
       </div>
 
       <p>Felül egy összesített állapot (Működik / Akadozik / Ismeretlen), alatta szolgáltatásonkénti bontás, legalul a legutóbbi incidensek listája dátummal és állapottal (vizsgálat alatt / azonosítva / figyelve / megoldva).</p>
@@ -918,8 +901,9 @@
 
       <p class="purpose">Itt derül ki, van-e újabb kiadott verzió, mi változott benne, és innen indítható el maga a frissítés.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/17-frissitesek.png" alt="Frissítések oldal, futó verzióval és változás-listával">
+        <div class="screenshot-caption">Frissítések oldal.</div>
       </div>
 
       <p>Az oldal tetején a futó verzió, alatta a legutóbbi változtatások listája. Ha a rendszer nem a hivatalos kiadási ágon fut (pl. fejlesztői ágon), erre egy külön figyelmeztető sáv hívja fel a figyelmet a felület tetején is, nemcsak ezen az oldalon.</p>
@@ -946,8 +930,9 @@
 
       <p class="purpose">A rendszer konfigurációjának központi helye. Innen módosítható a legtöbb paraméter közvetlenül a böngészőből, anélkül hogy szerverhez vagy fájlokhoz kellene hozzáférni.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/18-beallitasok.png" alt="Beállítások oldal, funkció szerinti fülekkel">
+        <div class="screenshot-caption">Beállítások oldal, minta-konfigurációval.</div>
       </div>
 
       <h3>Fülek (modulok)</h3>
@@ -981,8 +966,9 @@
 
       <p class="purpose">Titkosított tároló API-kulcsoknak, jelszavaknak és SSH hozzáféréseknek, amiket a rendszer különböző integrációi (pl. MCP szerverek, távoli ügynökök) használnak. A kulcsok kizárólag a helyi gépen tárolódnak, titkosítva (AES-256-GCM), és sosem hagyják el a rendszert.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/19-vault.png" alt="Vault oldal, kulcs-kártyákkal">
+        <div class="screenshot-caption">Vault oldal, minta-kulcsokkal.</div>
       </div>
 
       <h3>Kulcsok</h3>
@@ -1020,8 +1006,9 @@
 
       <p class="purpose">Az ügynökök által elérhető külső eszközök (MCP szerverek) áttekintése és kezelése: mit tud elérni egy ügynök a beszélgetésen és a saját tudásán túl, pl. naptárt, email-fiókot, üzleti API-kat.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/20-mcp.png" alt="MCP oldal, connector-listával">
+        <div class="screenshot-caption">MCP oldal, minta-connectorokkal.</div>
       </div>
 
       <p>Az itt listázott MCP-k a Claude Code-hoz kapcsolt szerverek: a claude.ai fiókodon engedélyezett integrációk, a marketplace-ből telepített kiegészítők, és a helyi konfigurációban felvettek. Minden ügynök automatikusan látja őket, mert ugyanabból a felhasználói profilból dolgoznak.</p>
@@ -1050,8 +1037,9 @@
 
       <p class="purpose">Két különálló Marveen-telepítés (pl. egy irodai és egy otthoni gépen futó) összekötése, hogy a két rendszer ügynökei üzenetet válthassanak és feladatot delegálhassanak egymásnak, miközben mindkét rendszer önálló marad. Alapból teljesen ki van kapcsolva, bekapcsolásig a rendszer úgy viselkedik, mintha ez a funkció nem is létezne.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/21-federacio.png" alt="Föderáció oldal, fő kapcsolóval és társ-listával">
+        <div class="screenshot-caption">Föderáció oldal, kikapcsolt alapállapotban.</div>
       </div>
 
       <h3>Fő kapcsoló</h3>
@@ -1079,8 +1067,9 @@
 
       <p class="purpose">Korábbi, más AI-asszisztens rendszerből (nem Marveen-fleották közötti költözés, hanem egy másik termékből) származó anyagok (személyiség, memória, ütemezés, konfiguráció) átvétele egy Marveen-ügynökbe. Ez különbözik az <a href="#agents">Ügynökök</a> oldal exportálás/importálás funkciójától, ami két Marveen-telepítés közötti átvitelre való.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/22-koltoztetes.png" alt="Költöztetés oldal, forrás-megadással">
+        <div class="screenshot-caption">Költöztetés oldal, első lépés.</div>
       </div>
 
       <h3>1. lépés: forrás megadása</h3>
@@ -1106,8 +1095,9 @@
 
       <p class="purpose">A rendszer beépített, böngészőben olvasható dokumentáció-könyvtára. Ezt a kézikönyvet leszámítva itt találod a mélyebb, technikai jellegű leírásokat is, amiket ez a kézikönyv szándékosan nem másolt be szó szerint.</p>
 
-      <div class="screenshot-pending">
-        <strong>Screenshot még nincs beillesztve.</strong> A végleges kép a demo-példány elkészülte után kerül ide.
+      <div class="screenshot">
+        <img src="kepek/23-dokumentacio.png" alt="Dokumentáció oldal, dokumentum-listával">
+        <div class="screenshot-caption">Dokumentáció oldal, minta-tartalommal.</div>
       </div>
 
       <p>Bal oldalon a rendelkezésre álló dokumentumok listája, egy tétel megnyitására a jobb oldalon jelenik meg a megformázott tartalom, ahonnan az eredeti fájl le is tölthető.</p>

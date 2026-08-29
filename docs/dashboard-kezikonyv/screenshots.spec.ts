@@ -31,23 +31,7 @@ type Shot = {
 }
 
 const SHOTS: Shot[] = [
-  {
-    name: '01-attekintes',
-    page: 'overview',
-    after: async (p) => {
-      // SAMPLE-ONLY SAFEGUARD: this is Laci's own live instance, and the
-      // Aktivitás feed shows real internal project chatter (client names,
-      // security-finding card titles) that must never appear in a
-      // customer-facing manual. Hide it until a clean/demo dashboard
-      // instance is available for the final capture pass (see kanban
-      // e6faf48c discussion) -- do NOT remove this without checking that
-      // decision first.
-      await p.evaluate(() => {
-        const card = document.getElementById('overviewActivity')?.closest('.overview-card')
-        if (card) (card as HTMLElement).style.visibility = 'hidden'
-      })
-    },
-  },
+  { name: '01-attekintes', page: 'overview' },
   { name: '02-kanban', page: 'kanban' },
   {
     name: '02b-kanban-archivaltak',
@@ -57,13 +41,38 @@ const SHOTS: Shot[] = [
       await p.waitForTimeout(400)
     },
   },
+  { name: '03-jovahagyasok', page: 'approvals' },
+  { name: '04-ugynokok', page: 'agents' },
+  { name: '05-aktivitas', page: 'activity' },
+  { name: '06-uzenetek', page: 'messages' },
+  { name: '07-utemezesek', page: 'tasks' },
+  { name: '08-hatter', page: 'bgTasks' },
+  { name: '09-memoria', page: 'memories' },
+  { name: '10-naplo', page: 'naplo' },
+  { name: '11-skillek', page: 'skills' },
+  { name: '12-kutatas', page: 'research' },
+  { name: '13-otletlada', page: 'ideas' },
+  { name: '14-koltsegek', page: 'costs' },
+  { name: '15-token-monitor', page: 'tokenUsage' },
+  { name: '16-statusz', page: 'status' },
+  { name: '17-frissitesek', page: 'updates' },
+  { name: '18-beallitasok', page: 'settings' },
+  { name: '19-vault', page: 'vault' },
+  { name: '20-mcp', page: 'connectors' },
+  { name: '21-federacio', page: 'federation' },
+  { name: '22-koltoztetes', page: 'migrate' },
+  { name: '23-dokumentacio', page: 'docs' },
 ]
 
 test.beforeEach(async ({ page }) => {
   // Force light theme so every screenshot is visually consistent, regardless
-  // of whatever theme this browser profile last saved.
+  // of whatever theme this browser profile last saved. Also dismiss the
+  // first-run onboarding wizard ('Marveen beallitasa': Nev / Claude auth /
+  // Telegram bot / Parositas) -- on a fresh install it covers every page
+  // full-screen and has no server-side toggle, only this localStorage flag.
   await page.addInitScript(() => {
     window.localStorage.setItem('cc-theme', 'light')
+    window.localStorage.setItem('mvOnboardingDismissed', '1')
   })
 })
 
