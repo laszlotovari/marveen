@@ -112,7 +112,13 @@ def agent_id_from_cwd(cwd):
     if cwd.startswith(agents_root + os.sep):
         rel = cwd[len(agents_root) + 1:]
         return rel.split(os.sep)[0] or main_agent_id()
-    if cwd == install:
+    if cwd == install or cwd.startswith(install + os.sep):
+        # Anywhere else INSIDE the install tree is still the main agent. Without
+        # this, a session whose cwd happens to be a subdirectory (a scratch dir,
+        # a build folder, ...) logs its messages under an agent id invented from
+        # the directory name. That splits the conversation ledger across two
+        # identities and makes the reply guard block on a question it has
+        # already answered, because it finds no outbound under the real id.
         return main_agent_id()
     # Fallback: last path component (best effort), else main.
     base = os.path.basename(cwd)
@@ -234,5 +240,9 @@ def open_question(agent_id):
     oq = open_question_with_age(agent_id)
     if not oq:
         return None
-    chat_id, message_id, text, ts, _created_at, att_kind, att_file_id = oq
+    # Prefix-slice on purpose (HOOKARITAS821): if open_question_with_age()
+    # ever widens again, this unpack would ValueError INSIDE ledger_lib, and
+    # every caller that wraps only the open_question() call in try/except
+    # would read the failure as "ledger unavailable" -- fail-open, silently.
+    chat_id, message_id, text, ts, _created_at, att_kind, att_file_id = oq[:7]
     return (chat_id, message_id, text, ts, att_kind, att_file_id)
