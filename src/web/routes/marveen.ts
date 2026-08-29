@@ -3,7 +3,7 @@ import { join, extname } from 'node:path'
 import {
   PROJECT_ROOT, MAIN_AGENT_ID, CHANNEL_PROVIDER,
   currentBotName, currentBrandName, currentOwnerName,
-  KANBAN_LABEL_COLORS,
+  KANBAN_LABEL_COLORS, DEFAULT_AGENT_MODEL,
 } from '../../config.js'
 import { getEffectiveSettingValue } from '../../settings-store.js'
 import { readMarveenTelegramConfig, readMarveenDiscordConfig, readMarveenSlackConfig, readMarveenGooglechatConfig, readMarveenTeamsConfig, sendMarveenAvatarChange } from '../telegram.js'
@@ -16,8 +16,15 @@ import { readActiveModelFromProjectDir, readContextTokensFromProjectDir } from '
 import { readAutoRestartConfig } from '../auto-restart-store.js'
 import type { RouteContext } from './types.js'
 
+// Unlike a sub-agent, the main agent has no agent-config.json to report a
+// *configured* model when it isn't actively running a session -- readActiveModelFromProjectDir
+// only sees a model once a real transcript exists. Without this fallback, the
+// model badge reads a raw "unknown" on every fresh install until the main
+// agent has answered at least one prompt, which is a bad first impression and
+// not actually descriptive of anything (the install DOES have a default model,
+// it just hasn't been observed running yet).
 function getActiveMarveenModel(): string {
-  return readActiveModelFromProjectDir(PROJECT_ROOT) ?? 'unknown'
+  return readActiveModelFromProjectDir(PROJECT_ROOT) ?? DEFAULT_AGENT_MODEL
 }
 
 // Pure identity-core of the /api/marveen payload: the brand-relevant fields the
