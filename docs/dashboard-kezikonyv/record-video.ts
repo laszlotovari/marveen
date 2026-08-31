@@ -2,6 +2,14 @@
  * Raw screen-recording capture for the FB video creative (see
  * docs/marween-onprem-fb-video-kreativ.md, "A koncepció" scene list).
  *
+ * Kartya d5fcc22d (2026-08-31) ujrafelvetel: Laci kifogasa az elozo (67s)
+ * felvetelre "nem sokat mutat, tobb oldalt kellene felvillantani roviden" --
+ * a jelenetlista MARADT (ugyanaz az "A koncepcio" sor), de a tisztan allo,
+ * mozgas nelkuli holt-ido szakaszok (idle drift, hosszu zaro varakozasok)
+ * roviditve, hogy porgosebb/vibralobb legyen a nyers anyag. A tenyleges
+ * elem-honnan-honnan-hover idok (kartyankent/soronkent) szandekosan
+ * bovebbek maradtak, hogy a vagoasztalon legyen mozgastere.
+ *
  * Produces ONE continuous, unedited, no-caption, no-audio screen recording of
  * the dashboard-kezikonyv demo instance: Áttekintés (Csapat) -> Ügynökök
  * (kártyák) -> Kanban -> Üzenetek (FÜGGŐBEN pillanat) -> Áttekintés
@@ -19,7 +27,7 @@
 import { chromium } from '@playwright/test'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { readdirSync, renameSync, mkdirSync } from 'fs'
+import { readdirSync, renameSync, mkdirSync, statSync } from 'fs'
 
 const DASHBOARD_URL = process.env.DASHBOARD_URL
 if (!DASHBOARD_URL) {
@@ -73,60 +81,73 @@ async function main() {
     if (await btn.isVisible().catch(() => false)) await btn.click()
   }
 
-  // --- 1. Áttekintés: Csapat doboz -------------------------------------
+  // --- 1. Áttekintés: Csapat doboz (cél kb. 5mp, brief 0:03-0:08) -------
   await switchPage(page, 'overview')
-  await page.waitForTimeout(1200)
-  await hoverSmooth(page, page.locator('#overviewTeamGrid'), 3500)
+  await page.waitForTimeout(700)
+  await hoverSmooth(page, page.locator('#overviewTeamGrid'), 2800)
   await page.mouse.move(0, 0) // idle drift, avoid a static cursor sitting on one node
-  await page.waitForTimeout(5500)
+  await page.waitForTimeout(1500)
 
-  // --- 2. Ügynökök: kurzor végigpásztáz a kártyákon ---------------------
+  // --- 2. Ügynökök: kurzor végigpásztáz a kártyákon (cél kb. 12mp, 0:08-0:20) ---
   await switchPage(page, 'agents')
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(800)
   const cards = page.locator('.agent-card:not(.add-card)')
   const cardCount = await cards.count()
   for (let i = 0; i < cardCount; i++) {
-    await hoverSmooth(page, cards.nth(i), 3300)
+    await hoverSmooth(page, cards.nth(i), 2800)
   }
 
-  // --- 3. Kanban tábla ----------------------------------------------------
+  // --- 3. Kanban tábla (cél kb. 15mp, 0:20-0:35) --------------------------
   await switchPage(page, 'kanban')
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(1000)
   const kanbanCards = page.locator('.kanban-card')
   const kCount = Math.min(await kanbanCards.count(), 4)
   for (let i = 0; i < kCount; i++) {
-    await hoverSmooth(page, kanbanCards.nth(i), 2300)
+    await hoverSmooth(page, kanbanCards.nth(i), 2800)
   }
-  await page.waitForTimeout(2500)
-
-  // --- 4. Üzenetek: delegálás + FÜGGŐBEN pillanat ------------------------
-  await switchPage(page, 'messages')
   await page.waitForTimeout(1800)
+
+  // --- 4. Üzenetek: delegálás + FÜGGŐBEN pillanat (cél kb. 15mp, 0:35-0:50) --
+  await switchPage(page, 'messages')
+  await page.waitForTimeout(1500)
   const pending = page.getByText('FÜGGŐBEN', { exact: true }).first()
   if (await pending.isVisible().catch(() => false)) {
-    await hoverSmooth(page, pending, 7000)
+    await hoverSmooth(page, pending, 10000)
   } else {
-    await page.waitForTimeout(7000)
+    await page.waitForTimeout(10000)
   }
-  await page.waitForTimeout(3000)
+  await page.waitForTimeout(2000)
 
-  // --- 5. Vissza az Áttekintésre: Aktivitás feed -------------------------
+  // --- 5. Aktivitás feed pörgetése (cél kb. 15mp, 0:50-1:05) --------------
   await switchPage(page, 'overview')
-  await page.waitForTimeout(1200)
-  await hoverSmooth(page, page.locator('#overviewActivity'), 2800)
+  await page.waitForTimeout(800)
+  await hoverSmooth(page, page.locator('#overviewActivity'), 2200)
   await page.mouse.wheel(0, 200)
-  await page.waitForTimeout(3000)
-  await page.mouse.wheel(0, -200)
-  await page.waitForTimeout(4000)
+  await page.waitForTimeout(2500)
+  await page.mouse.wheel(0, 200)
+  await page.waitForTimeout(2500)
+  await page.mouse.wheel(0, -400)
+  await page.waitForTimeout(2500)
+
+  // --- 6. Nyugodt záró kép (cél kb. 10mp, 1:05-1:15) ----------------------
+  await page.mouse.move(960, 200, { steps: 15 })
+  await page.waitForTimeout(9000)
 
   await context.close()
   await browser.close()
 
-  // Playwright names the file by an internal id; rename to something stable.
-  const files = readdirSync(VIDEO_DIR).filter((f) => f.endsWith('.webm'))
-  const latest = files.sort().pop()
+  // Playwright names the file by an internal hex id (page@<hash>.webm), NOT
+  // sortable against a previous manually-renamed output (2026-08-31: alpha
+  // sort picked the OLD "raw-a-koncepcio.webm" from a prior take over the
+  // new "page@07da...webm", because 'r' sorts after hex digits -- silently
+  // "recorded" the stale file under the new name). Pick by mtime instead,
+  // and only look at Playwright's own page@*.webm outputs.
+  const files = readdirSync(VIDEO_DIR).filter((f) => /^page@.*\.webm$/.test(f))
+  const latest = files
+    .map((f) => ({ f, mtime: statSync(path.join(VIDEO_DIR, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime)[0]?.f
   if (latest) {
-    const dest = path.join(VIDEO_DIR, 'raw-a-koncepcio.webm')
+    const dest = path.join(VIDEO_DIR, 'raw-a-koncepcio-metis.webm')
     renameSync(path.join(VIDEO_DIR, latest), dest)
     console.log('Video mentve:', dest)
   } else {
