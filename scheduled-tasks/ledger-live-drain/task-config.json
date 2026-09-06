@@ -3,6 +3,7 @@
   "agent": "marveen",
   "enabled": true,
   "type": "heartbeat",
+  "preCheck": "pre-check.sh",
   "skipIfBusy": true,
   "createdAt": 1787580000
 }

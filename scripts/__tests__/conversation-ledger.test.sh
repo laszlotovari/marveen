@@ -44,9 +44,10 @@ run_hook() {
 # Run the live-drain from cwd=INSTALL_DIR so agent_id resolves to 'marveen'
 # (matching the capture/outbound rows). The drain's dedup statefile lands beside
 # the DB (dirname of LEDGER_DB_PATH), so per-case subdirs keep it isolated.
-run_drain() { # db
-    ( cd "$INSTALL_DIR" && LEDGER_DB_PATH="$1" LEDGER_OWNER_CHAT="10000000001" \
-        MAIN_AGENT_ID="marveen" python3 "$HOOKS_DIR/ledger-live-drain.py" )
+run_drain() { # db [extra args...]
+    db="$1"; shift
+    ( cd "$INSTALL_DIR" && LEDGER_DB_PATH="$db" LEDGER_OWNER_CHAT="10000000001" \
+        MAIN_AGENT_ID="marveen" python3 "$HOOKS_DIR/ledger-live-drain.py" "$@" )
 }
 
 # Age every row in a ledger DB backwards so an open question clears the grace window.
@@ -489,6 +490,43 @@ mkdir -p "$TMPDIR_BASE/ld4"; DB_LD4="$TMPDIR_BASE/ld4/x.db"
 emit_inbound 10000000001 1131 "Epp most erkezett" | run_hook ledger-capture.py "$DB_LD4"
 OUT_G4="$(run_drain "$DB_LD4")"
 assert_eq "live drain: in-flight question (within grace) is not surfaced" "" "$OUT_G4"
+
+# (g5) --peek is the READ-ONLY probe the scheduler's preCheck gate runs. It must
+# report that something is pending WITHOUT consuming the dedup marker: a tick can
+# still be dropped after the gate passes (skipIfBusy, a dead session), and a
+# consumed marker would lose that question for good.
+mkdir -p "$TMPDIR_BASE/ld5"; DB_LD5="$TMPDIR_BASE/ld5/x.db"
+emit_inbound 10000000001 1140 "Kapu-probalt kerdes" | run_hook ledger-capture.py "$DB_LD5"
+age_rows "$DB_LD5" 120
+OUT_G5="$(run_drain "$DB_LD5" --peek)"
+if [ -n "$OUT_G5" ]; then
+    pass "live drain --peek: reports a pending open question"
+else
+    fail "live drain --peek: reported nothing for a pending open question"
+fi
+if printf '%s' "$OUT_G5" | grep -q "OPEN_QUESTION"; then
+    fail "live drain --peek: leaked the surfacing block (must stay a probe)"
+else
+    pass "live drain --peek: emits a probe line, not the OPEN_QUESTION block"
+fi
+assert_eq "live drain --peek: writes no dedup statefile" "" \
+    "$(cat "$TMPDIR_BASE/ld5/.ledger-drain-marveen" 2>/dev/null)"
+
+# (g5b) ...so the real run right after it still surfaces the message.
+OUT_G5B="$(run_drain "$DB_LD5")"
+if printf '%s' "$OUT_G5B" | grep -q "OPEN_QUESTION chat_id=10000000001 message_id=1140"; then
+    pass "live drain: a preceding --peek does not consume the question"
+else
+    fail "live drain: --peek consumed the question (got: $OUT_G5B)"
+fi
+
+# (g6) nothing open -> --peek is silent, which is what makes the gate SKIP.
+mkdir -p "$TMPDIR_BASE/ld6"; DB_LD6="$TMPDIR_BASE/ld6/x.db"
+emit_inbound 10000000001 1150 "Megvalaszolt kerdes" | run_hook ledger-capture.py "$DB_LD6"
+age_rows "$DB_LD6" 120
+emit_reply 10000000001 "Itt a valasz" | run_hook ledger-outbound.py "$DB_LD6"
+assert_eq "live drain --peek: silent when everything is answered" "" \
+    "$(run_drain "$DB_LD6" --peek)"
 
 # ---------------------------------------------------------------------------
 # (h) SECOND CHANNEL PROVIDER -- the ledger must not be blind to a non-Telegram

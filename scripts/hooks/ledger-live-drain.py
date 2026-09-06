@@ -19,6 +19,14 @@ Deterministic + safe:
 - Never blocks: ANY error -> exit 0, silent (a drain failure must never wedge the
   session or emit noise).
 
+With --peek the drain is a READ-ONLY probe: it reports whether an open
+question is waiting but writes nothing and consumes no dedup marker. That is
+what the scheduler's preCheck gate uses -- the gate must never be the thing
+that "surfaces" a message, because a tick can still be dropped after the gate
+passes (skipIfBusy, a dead session), and a consumed marker would then lose the
+question for good. The gate only decides whether to wake the model; the real
+surfacing stays in the session's own run.
+
 agent_id is derived from the process cwd (generic across channel agents), so the
 drain only ever surfaces THIS agent's own open question. When it surfaces one it
 writes exactly this block to stdout:
@@ -34,6 +42,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ledger_lib  # noqa: E402
 
 GRACE_SECONDS = 60
+PEEK_FLAG = "--peek"
+PEEK_MESSAGE = (
+    "Van megválaszolatlan bejövő üzenet a ledgerben. Futtasd le a drain "
+    "scriptet, és válaszolj a blokkban szereplő chat_id-ra."
+)
 
 
 def _statefile(agent_id):
@@ -60,6 +73,7 @@ def _record_surfaced(path, message_id):
 
 
 def main():
+    peek = PEEK_FLAG in sys.argv[1:]
     agent_id = ledger_lib.agent_id_from_cwd(os.getcwd())
 
     try:
@@ -85,6 +99,12 @@ def main():
     # DEDUP: surface a given message_id at most once.
     path = _statefile(agent_id)
     if _last_surfaced(path) == str(message_id):
+        sys.exit(0)
+
+    if peek:
+        # Read-only: no statefile write, no message text. Anything on stdout
+        # tells the preCheck gate "wake the model"; empty means SKIP.
+        sys.stdout.write(PEEK_MESSAGE + "\n")
         sys.exit(0)
 
     snippet = (text or "").strip()

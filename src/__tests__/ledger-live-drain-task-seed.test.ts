@@ -36,4 +36,41 @@ describe('ledger-live-drain scheduled-task seed', () => {
   it('the drain script the task invokes exists', () => {
     expect(existsSync(join(ROOT, 'scripts', 'hooks', 'ledger-live-drain.py'))).toBe(true)
   })
+
+  // The task fires every 2 minutes and its script prints nothing almost every
+  // time, so without a preCheck gate the runner wakes the model ~720x/day to
+  // read an empty stdout. runPreCheck() has existed (and been tested) all
+  // along, but no shipped task used it -- the same dead-feature class this
+  // file was written for.
+  it('is gated by a preCheck script so an empty tick costs no model call', () => {
+    const cfg = JSON.parse(readFileSync(join(TASK_DIR, 'task-config.json'), 'utf-8'))
+    expect(cfg.preCheck).toBe('pre-check.sh')
+    expect(existsSync(join(TASK_DIR, 'pre-check.sh'))).toBe(true)
+  })
+
+  it('the gate probes read-only (--peek) and never consumes the dedup marker', () => {
+    const gate = readFileSync(join(TASK_DIR, 'pre-check.sh'), 'utf-8')
+    // A tick can still be dropped after the gate passes (skipIfBusy, dead
+    // session). If the gate ran the surfacing path, that message would be
+    // marked surfaced and then lost for good.
+    expect(gate).toContain('--peek')
+    const drain = readFileSync(join(ROOT, 'scripts', 'hooks', 'ledger-live-drain.py'), 'utf-8')
+    expect(drain).toContain('PEEK_FLAG')
+    const peekBlock = drain.slice(drain.indexOf('if peek:'))
+    expect(peekBlock.slice(0, peekBlock.indexOf('snippet ='))).not.toContain('_record_surfaced')
+  })
+
+  it('the gate emits SKIP and resolves the install path via the seeder placeholder', () => {
+    const gate = readFileSync(join(TASK_DIR, 'pre-check.sh'), 'utf-8')
+    expect(gate).toContain('echo "SKIP"')
+    expect(gate).toContain('{{PROJECT_ROOT}}/scripts/hooks/ledger-live-drain.py')
+  })
+
+  // A drain without --peek would treat the flag as noise and run the SURFACING
+  // path from the scheduler, consuming the dedup marker outside any session.
+  // The gate checks the script it is about to call and fails open instead.
+  it('the gate refuses to run a drain that does not know --peek', () => {
+    const gate = readFileSync(join(TASK_DIR, 'pre-check.sh'), 'utf-8')
+    expect(gate).toContain("grep -q 'PEEK_FLAG'")
+  })
 })
