@@ -35,7 +35,24 @@ MAIN_AGENT = 'marween'
 SANCTIONED = [
     re.compile(r'\$\(cat\s+\S*store/\.dashboard-token\)'),
     re.compile(r'scripts/dash\b'),
+    # ZAJSZURES az elso eles futas utan (2026-09-15 20:40, 26 talalat / 0 incidens).
+    # A .env.testing es a .env.example KONVENCIO szerint nem titok-hordozo: az elobbi a
+    # teszt-DB beallitasa, az utobbi a bemasolando minta. A CSUPASZ .env-et tovabbra is
+    # jelezzuk, mert az a valodi titok-fajl.
+    re.compile(r'\.env\.(testing|example)\b'),
 ]
+
+# Egy `rm`, aminek MINDEN celpontja /tmp ala mutat, sajat takaritas, nem rombolas.
+# Ha akar egy celpont kilog onnan, a szabaly tovabbra is jelez.
+_RM_RE = re.compile(r'\brm\s+(-[a-zA-Z]+\s+)*(?P<targets>[^;&|\n]+)')
+
+
+def is_tmp_only_rm(text):
+    m = _RM_RE.search(text)
+    if not m:
+        return False
+    targets = [t for t in m.group('targets').split() if not t.startswith('-')]
+    return bool(targets) and all(t.startswith('/tmp/') for t in targets)
 
 # Localhost es a sajat tailscale dashboard-cim: ezek nem "kulso" halozat.
 LOCAL_HOSTS = re.compile(r'https?://(localhost|127\.0\.0\.1|100\.83\.33\.14)(:\d+)?', re.I)
@@ -54,6 +71,32 @@ RULES = [
 
 # Melyik agens hova irhat sajatkent. Ezen kivuli IRAS talalat.
 # (Olvasast nem szurunk utvonalra: a kozos tudastar olvasasa ma mar engedelyezett.)
+# A sajat session-scratchpad ES a flotta kozos memoria-konyvtara NEM "sajat teruleten
+# kivul": az elso a harness altal kijelolt ideiglenes hely (a path-ban ott az agens neve),
+# a masodik a kozos emlekezet, ahova irni a dolguk. Az elso eles futason ez a ketto adta a
+# 26 talalatbol 21-et -- pontosan az a napi zaj, ami elolne az igazi jelzest.
+# FIGYELEM: a kozos memoria-konyvtar (~/.claude/projects/*/memory/) SZANDEKOSAN NINCS itt.
+# Elso korben felvettem, aztan visszavettem: a subagent-audit-detection.test.ts "fires on a
+# write outside the agent own area" esete kifejezetten azt dokumentalja, hogy a memoria-iras
+# "benign, but must be visible". Megosztott eroforras, ahol az agensek egymasra irhatnak (volt
+# is mar majdnem-utkozes), es naponta ot sor nem az a zaj, ami elolne a jelzest -- a tizenhat
+# scratchpad-sor volt az. Mielott egy jelzest kivennel, nezd meg, mit orzott (88. eset).
+_OWN_PATH_RE = [
+    re.compile(r'^/tmp/claude-\d+/[^/]*agents-(?P<agent>[a-z0-9_-]+)/[^/]+/scratchpad/'),
+]
+
+
+def is_own_path(agent, path):
+    for rx in _OWN_PATH_RE:
+        m = rx.match(path)
+        if not m:
+            continue
+        named = m.groupdict().get('agent')
+        if named is None or named == agent:
+            return True
+    return False
+
+
 def own_write_areas(agent):
     return [
         f'/home/laci/projects/marveen/agents/{agent}/',
@@ -105,12 +148,16 @@ def audit(hours):
                 if key == 'kulso-halozat':
                     if external_network(text):
                         hits.append(label)
+                elif key == 'romboló' and is_tmp_only_rm(text):
+                    continue
                 elif pat.search(text):
                     hits.append(label)
 
         if r['tool_name'] in WRITE_TOOLS:
             path = text.strip()
-            if path.startswith('/') and not any(path.startswith(a) for a in own_write_areas(agent)):
+            if (path.startswith('/')
+                    and not any(path.startswith(a) for a in own_write_areas(agent))
+                    and not is_own_path(agent, path)):
                 hits.append('iras a sajat teruleten kivul')
 
         if hits:

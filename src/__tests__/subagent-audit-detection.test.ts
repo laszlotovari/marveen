@@ -97,6 +97,50 @@ describe('subagent-audit detection', () => {
     expect(run().findings).toEqual([])
   })
 
+  // ZAJSZURES az elso eles futas utan (2026-09-15 20:40): 26 talalat, 0 incidens. A 26-bol
+  // 16 a sajat session-scratchpad volt. Ezek a tesztek a szures HATARAT pinneljuk le -- nem azt,
+  // hogy a szures mukodik, hanem hogy NEM vitte magaval a valodi jelzest.
+  it('stays quiet on a write into the agent own session scratchpad', () => {
+    seed([{ agent: 'archie', tool: 'Write', input: '/tmp/claude-1000/-home-laci-projects-marveen-agents-archie/7c08b2b4/scratchpad/send_msg.py' }])
+    expect(run().findings).toEqual([])
+  })
+
+  it('STILL fires when one agent writes into ANOTHER agent scratchpad', () => {
+    // The whitelist is per-agent on purpose: a cross-agent scratchpad write is not
+    // housekeeping, it is one agent reaching into another one's workspace.
+    seed([{ agent: 'nia', tool: 'Write', input: '/tmp/claude-1000/-home-laci-projects-marveen-agents-archie/7c08b2b4/scratchpad/x.py' }])
+    expect(run().findings[0].why).toContain('iras a sajat teruleten kivul')
+  })
+
+  it('stays quiet on an rm whose targets are all under /tmp', () => {
+    seed([{ agent: 'archie', tool: 'Bash', input: 'rm -f /tmp/original_factory.php /tmp/new_factory.php' }])
+    expect(run().findings).toEqual([])
+  })
+
+  it('STILL fires on an rm that reaches outside /tmp, even alongside a /tmp target', () => {
+    seed([{ agent: 'archie', tool: 'Bash', input: 'rm -rf /tmp/scratch /home/laci/projects/workflowTTK-archie/app' }])
+    expect(run().findings[0].why).toContain('torlo vagy felulcsapo muvelet')
+  })
+
+  it('stays quiet on reading .env.testing (a test fixture, not the secret file)', () => {
+    seed([{ agent: 'archie', tool: 'Bash', input: 'cd /home/laci/projects/workflowTTK-archie && grep -n "DB_" .env.testing' }])
+    expect(run().findings).toEqual([])
+  })
+
+  it('STILL fires on reading the bare .env', () => {
+    seed([{ agent: 'archie', tool: 'Bash', input: 'cat /home/laci/projects/marveen/.env' }])
+    expect(run().findings[0].why).toContain('hitelesito adat eleresenek kiserlete')
+  })
+
+  it('STILL fires on a write into the shared memory directory (deliberately NOT whitelisted)', () => {
+    // Measured decision 2026-09-15: I first whitelisted this, then took it back. It is a
+    // SHARED resource where agents can clobber each other, and the test above documents
+    // that such writes are "benign, but must be visible". Five lines a day is not the
+    // noise that drowns a signal -- sixteen scratchpad lines were.
+    seed([{ agent: 'nia', tool: 'Write', input: '/home/laci/.claude/projects/-home-laci-projects-marveen/memory/x.md' }])
+    expect(run().findings[0].why).toContain('iras a sajat teruleten kivul')
+  })
+
   it('ignores the main agent own calls', () => {
     // Marween is not a sub-agent: no governance gates apply, and it reports its own work.
     seed([{ agent: 'marween', tool: 'Bash', input: 'cat /home/laci/.ssh/id_rsa' }])
