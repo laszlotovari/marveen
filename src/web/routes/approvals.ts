@@ -53,6 +53,36 @@ export function computeTimeoutAt(category: string, timeoutSeconds: unknown, nowM
   return now + DEFAULT_TIMEOUT_MINUTES * 60
 }
 
+// OWNERNOTIFY915: a category may opt OUT of paging the owner. Laci's
+// instruction 2026-09-15 (Telegram 1607): "ezeket Te is el tudod donteni,
+// eddig a skilleket intezetek Ti, legyen igy tovabbra is" -- a sub-agent's
+// skill-patch request should reach the MAIN AGENT and stop there. Absent or
+// null means notify (the safe default; nothing existing changes).
+function readCategoryOwnerNotify(category: string): boolean | null {
+  try {
+    if (!existsSync(AUTONOMY_CONFIG_PATH)) return null
+    const config = JSON.parse(readFileSync(AUTONOMY_CONFIG_PATH, 'utf-8')) as {
+      categories: { key: string; owner_notify?: boolean | null }[]
+    }
+    const cat = config.categories.find(c => c.key === category)
+    if (!cat || cat.owner_notify == null) return null
+    return cat.owner_notify
+  } catch {
+    return null
+  }
+}
+
+// Pure + exported for tests. The APPROVALVAK821 invariant is preserved exactly
+// where it mattered: when the MAIN AGENT is the requester there is no second
+// party, so suppressing the owner would rebuild the closed loop that card
+// fixed -- that case notifies UNCONDITIONALLY, whatever the category says.
+// Only a SUB-AGENT request can be owner-silent, because there the main agent
+// is a real, separate decider.
+export function shouldNotifyOwner(agentId: string, mainAgentId: string, categoryOwnerNotify: boolean | null): boolean {
+  if (agentId === mainAgentId) return true
+  return categoryOwnerNotify !== false
+}
+
 // Owner-facing Telegram text. Pure + exported for tests. Plain text (no
 // markdown escaping concerns), proper accents: this is outgoing copy.
 export function buildOwnerApprovalText(approval: Approval): string {
@@ -99,6 +129,11 @@ function fallbackInBand(approval: Approval, reason: string): void {
 // undelivered approval is exactly the closed loop this fixes.
 function notifyOwner(approval: Approval): void {
   void (async () => {
+    if (!shouldNotifyOwner(approval.agent_id, MAIN_AGENT_ID, readCategoryOwnerNotify(approval.category))) {
+      logger.info({ approvalId: approval.id, category: approval.category },
+        'approval owner notification skipped: category is owner_notify:false and the requester is a sub-agent (the main agent decides)')
+      return
+    }
     if (!TELEGRAM_BOT_TOKEN) {
       logger.warn({ approvalId: approval.id }, 'approval owner notification suppressed: no TELEGRAM_BOT_TOKEN')
       fallbackInBand(approval, 'no-token')

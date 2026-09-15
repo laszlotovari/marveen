@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url'
 import {
   computeTimeoutAt,
   buildOwnerApprovalText,
+  shouldNotifyOwner,
   DEFAULT_TIMEOUT_MINUTES,
   MAX_TIMEOUT_SECONDS,
 } from '../web/routes/approvals.js'
@@ -135,5 +136,45 @@ describe('degraded-delivery fallback (review finding on #1026)', () => {
     expect(guard).toBeGreaterThan(0)
     expect(send).toBeGreaterThan(guard)
     expect(fn).toContain('[OWNER_UNREACHED')
+  })
+})
+
+// OWNERNOTIFY915: a category may opt out of paging the owner, so a sub-agent's
+// skill-patch request stops at the main agent. The risk of this change is that
+// it could quietly re-open the APPROVALVAK821 closed loop (leg 2) -- these
+// tests pin the boundary that keeps it shut.
+describe('shouldNotifyOwner (owner opt-out, without re-opening the closed loop)', () => {
+  it('notifies by default when the category says nothing', () => {
+    expect(shouldNotifyOwner('archie', 'marween', null)).toBe(true)
+  })
+
+  it('notifies when the category explicitly opts IN', () => {
+    expect(shouldNotifyOwner('archie', 'marween', true)).toBe(true)
+  })
+
+  it('stays silent for a SUB-AGENT request when the category opts out', () => {
+    expect(shouldNotifyOwner('archie', 'marween', false)).toBe(false)
+  })
+
+  it('STILL notifies when the requester IS the main agent, even on an opted-out category', () => {
+    // This is the whole safety boundary: with no second party, suppressing the
+    // owner would leave the main agent approving its own request unseen.
+    expect(shouldNotifyOwner('marween', 'marween', false)).toBe(true)
+  })
+})
+
+describe('the owner-notify opt-out is actually wired into notifyOwner', () => {
+  it('notifyOwner consults shouldNotifyOwner before any send', () => {
+    const fn = ROUTE.slice(ROUTE.indexOf('function notifyOwner'))
+    const guard = fn.indexOf('shouldNotifyOwner(')
+    const send = fn.indexOf('sendTelegramMessage(')
+    expect(guard).toBeGreaterThan(-1)
+    expect(send).toBeGreaterThan(-1)
+    expect(guard).toBeLessThan(send)
+  })
+
+  it('the opt-out is read from the autonomy config, not hard-coded', () => {
+    expect(ROUTE).toContain('readCategoryOwnerNotify')
+    expect(ROUTE).toContain('owner_notify')
   })
 })
