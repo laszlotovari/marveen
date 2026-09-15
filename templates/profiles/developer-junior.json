@@ -22,9 +22,9 @@
       "WebSearch(*)"
     ],
     "deny": [
-      "Read(${HOME}/.ssh/**)",
-      "Read(${HOME}/.aws/**)",
-      "Read(${HOME}/.gnupg/**)",
+      "Read(/${HOME}/.ssh/**)",
+      "Read(/${HOME}/.aws/**)",
+      "Read(/${HOME}/.gnupg/**)",
       "Bash(sudo:*)",
       "Bash(rm -rf ${HOME}:*)",
       "Bash(git push --force:*)",

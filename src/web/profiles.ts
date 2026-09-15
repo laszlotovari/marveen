@@ -48,8 +48,17 @@ export function loadProfileTemplate(id: string): ProfileTemplate {
   return HARDCODED_DEFAULT_PROFILE
 }
 
-export function resolveProfilePlaceholders(value: string, ctx: { HOME: string; AGENT_DIR: string }): string {
+// ${PROJECT_ROOT} is the install directory of THIS checkout. A profile that
+// wants to grant access to the shared dashboard/knowledge tree must not spell
+// that path out: a literal /home/<user>/... is one machine's truth and ships
+// broken to every other install (guarded by template-identity-hygiene.test.ts).
+// It defaults to the running install, so neither call site has to pass it.
+export function resolveProfilePlaceholders(
+  value: string,
+  ctx: { HOME: string; AGENT_DIR: string; PROJECT_ROOT?: string },
+): string {
   return value
+    .replace(/\$\{PROJECT_ROOT\}/g, ctx.PROJECT_ROOT ?? PROJECT_ROOT)
     .replace(/\$\{HOME\}/g, ctx.HOME)
     .replace(/\$\{AGENT_DIR\}/g, ctx.AGENT_DIR)
     .replace(/\$\{WORKDIR\}/g, ctx.AGENT_DIR)

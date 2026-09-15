@@ -644,7 +644,11 @@ export function injectEmailSendGate(existing: Record<string, unknown>): void {
 // Claude Code runtime self-scheduling tool names denied for sub-agents (fail-
 // closed, enforced even under --dangerously-skip-permissions). The Bash escape
 // routes are covered by the self-pace-gate hook, which a name-deny cannot reach.
-const SELF_PACE_TOOL_DENY = ['ScheduleWakeup', 'CronCreate', 'CronDelete', 'CronList', 'RemoteTrigger']
+// 'Workflow' is on this list for the same reason as the schedulers, not a different one:
+// it hands the agent a way to put dozens of subagents to work from a single call, which is
+// self-directed fan-out. Measured gap 2026-09-15 (kanban 85cf51c5) -- the list predates the
+// tool. Exported so the coverage is unit-testable, like the main-exempt guarantee below.
+export const SELF_PACE_TOOL_DENY = ['ScheduleWakeup', 'CronCreate', 'CronDelete', 'CronList', 'RemoteTrigger', 'Workflow']
 
 // Which agents are subject to the self-pace gate: every agent EXCEPT the main
 // agent (same name-agnostic main-exempt rule as the email gate). Pure + exported

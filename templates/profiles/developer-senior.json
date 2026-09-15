@@ -4,16 +4,19 @@
   "description": "Bizalmi profil: permissive módban fut, minden parancs engedélyezve, kivéve a deny-listát (sudo, SSH/AWS/GnuPG kulcsok olvasása, force-push, rm -rf $HOME). Csak olyan ágensnek add, amit ugyanannyira megbízol mint magadat. Nem sandbox. Sandboxolt profilért lásd developer-junior.",
   "permissionMode": "permissive",
   "filesystem": {
-    "allow": [],
+    "allow": [
+      "Read(/${HOME}/.claude/skills/**)"
+    ],
     "deny": [
-      "Read(${HOME}/.ssh/**)",
-      "Read(${HOME}/.aws/**)",
-      "Read(${HOME}/.gnupg/**)",
+      "Read(/${HOME}/.ssh/**)",
+      "Read(/${HOME}/.aws/**)",
+      "Read(/${HOME}/.gnupg/**)",
       "Bash(sudo:*)",
       "Bash(rm -rf ${HOME}:*)",
       "Bash(rm -rf /:*)",
       "Bash(git push --force:*)",
-      "Bash(git push -f:*)"
+      "Bash(git push -f:*)",
+      "Edit(/${HOME}/.claude/skills/**)"
     ]
   }
 }
