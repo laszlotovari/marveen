@@ -159,7 +159,7 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
     default: 30,
     min: 1,
     max: 365,
-    description: 'Ennyi napnál régebbi "done" kártyák automatikusan archiválódnak a listKanbanCards() hívásakor.',
+    description: 'Ennyi napnál régebbi "done" kártyák automatikusan archiválódnak. Az óránként futó kanban-archiváló runner végzi (nem a lekérdezés).',
     module: 'kanban',
     secret: false,
     requiresRestart: false,
@@ -267,6 +267,15 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
     requiresRestart: true,
   },
   {
+    key: 'AGENT_API_ORIGIN',
+    type: 'string',
+    default: '',
+    description: 'Az a cím, amin az ÜGYNÖKÖK érik el a dashboard API-ját onnan, ahol futnak (pl. http://localhost:3420 egy gépes telepítésnél, vagy egy belső szolgáltatás-név k8s-en). Üres = a régi viselkedés: DASHBOARD_PUBLIC_URL, annak hiányában localhost. Ez NEM a böngészőnek szóló publikus cím.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
     key: 'OLLAMA_URL',
     type: 'string',
     default: 'http://localhost:11434',
@@ -276,11 +285,77 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
     requiresRestart: true,
   },
   {
+    key: 'EMBED_URL',
+    type: 'string',
+    default: '',
+    description: 'Az embedding-hívások Ollama alap-URL-je. Üres = az OLLAMA_URL-t használja. Külön kulcs, mert az OLLAMA_URL-t négy másik hívó a natív ollama API-ra használja, és az ágensek ANTHROPIC_BASE_URL-je is abból jön.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
+    key: 'EMBED_MODEL',
+    type: 'string',
+    default: 'nomic-embed-text',
+    description: 'A memória-embedding modellje. Váltás után MINDEN emléket újra kell embeddelni: a különböző dimenziójú vektorok nem összehasonlíthatók.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
+    key: 'EMBED_DIMS',
+    type: 'int',
+    default: 0,
+    min: 0,
+    max: 8192,
+    description: 'Matryoshka-csonkolás: a natív vektor első N eleme (a koszinusz újranormalizál). 0 = nincs csonkolás. Csak CSÖKKENTHET, rövidebb vektort nem told fel.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
+    key: 'AGENT_LOCAL_BASE_URL',
+    type: 'string',
+    default: '',
+    description: 'A lokál modellen futó ágensek ANTHROPIC_BASE_URL-je. Üres = az OLLAMA_URL-t használja. Külön kulcs, mert az OLLAMA_URL-t másik négy hívó a natív ollama API-ra (/api/tags, /api/generate) használja, amit egy Anthropic-kompatibilis proxy nem szolgál ki.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
+    key: 'MEMORY_IMPORT_CATEGORIZE_MODEL',
+    type: 'string',
+    default: '',
+    description: 'Memória-importkor ezzel az Ollama modellel sorolja be az emlékeket (hot/warm/cold/shared), pl. gemma3:4b. FELÜLBÍRÁLÁS: ha be van állítva, pontosan ez a modell fut, helyettesítés nincs. Üres = a telepített gemma4 felismerése; ha nincs gemma4 és nincs beállítás, minden emlék warm, modellhívás nélkül. 4 GB VRAM-on a gemma3:4b bevált; gondolkodó modell (pl. qwen3) nagyon lassú.',
+    module: 'system',
+    secret: false,
+    requiresRestart: true,
+  },
+  {
+    key: 'TELEGRAM_PROGRESS_MODE',
+    type: 'string',
+    default: 'indicator',
+    valueSet: ['silent', 'indicator', 'verbose'],
+    description: 'Mennyit lásson a tulajdonos Telegramon a munkából. silent = semmi; indicator = egy eltűnő "gondolkodom" üzenet élő token-számlálóval, ami a kör végén törlődik; verbose = ugyanez, plusz a gondolatmenet megmaradó üzenetekben. Ez a flotta alapértelmezése -- egy ügynök felülírhatja a store/progress-config.json-ban.',
+    module: 'channels',
+    secret: false,
+    requiresRestart: false,
+  },
+  {
     key: 'DASHBOARD_LANG',
     type: 'string',
     default: 'hu',
     valueSet: ['hu', 'en'],
     description: 'A dashboard alapértelmezett megjelenítési nyelve (hu = magyar, en = angol). A böngészőben mentett preferencia (localStorage) felülírja.',
+    module: 'system',
+    secret: false,
+    requiresRestart: false,
+  },
+  {
+    key: 'OWNER_DRIVE_FOLDER',
+    type: 'string',
+    default: '',
+    description: 'A flotta közös Google Drive mappájának ID-je (a mappa-URL /folders/ utáni része). A generált kolléga-asszisztensek ide írják az eredmény-fájlokat. Üres = a generált agent a tulajdonostól kéri el a mappát. Hot-reload: agent-generáláskor olvasódik, nem igényel újraindítást.',
     module: 'system',
     secret: false,
     requiresRestart: false,
@@ -311,9 +386,15 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
   {
     key: 'HEARTBEAT_AGENT_ENABLED',
     type: 'string',
-    default: '1',
+    // OFF by default, matching config.ts: an unset key resolves to false there
+    // (deliberate opt-in -- a fresh/upgrading install must not silently spawn a
+    // sub-agent that reads the operator's calendar and database). The registry
+    // previously advertised '1', so the settings UI showed the feature as
+    // enabled while it never booted -- a silent mismatch that can hide for
+    // months.
+    default: '0',
     valueSet: ['0', '1'],
-    description: 'Heartbeat sub-ágens engedélyezése. 1 = bekapcsolva (újraindítás után lép életbe).',
+    description: 'Heartbeat sub-ágens engedélyezése. 1 = bekapcsolva (újraindítás után lép életbe). Alapértelmezés: kikapcsolva.',
     module: 'heartbeat',
     secret: false,
     requiresRestart: true,
@@ -427,6 +508,15 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
     valueSet: ['Europe/London', 'Europe/Budapest', 'UTC', 'Europe/Dublin', 'Europe/Berlin', 'Europe/Bucharest', 'America/New_York'],
   },
   {
+    key: 'AGENT_INHERITED_MCP_SERVERS',
+    type: 'string',
+    default: '',
+    description: 'Vesszővel elválasztott MCP-szerver-nevek, amelyeket egy ÚJ ügynök örökölhet (pl. aiam-blog). Minden más kimarad, amíg valaki név szerint oda nem adja. Üresen hagyva az új ügynök semmilyen connectort nem örököl (szűk alapértelmezés). Két helyről örököl: a projekt-gyökér .mcp.json-jából és a közös ~/.claude.json-ból, és a lista mindkettőre vonatkozik. A meglévő ügynöktől semmit nem vesz el. A fő ügynökre nem vonatkozik.',
+    module: 'agents',
+    secret: false,
+    requiresRestart: false,
+  },
+  {
     key: 'DEFAULT_AGENT_MODEL',
     type: 'string',
     default: DISTRIBUTION_DEFAULT_AGENT_MODEL,
@@ -435,13 +525,60 @@ export const SETTINGS_REGISTRY: SettingDefinition[] = [
     secret: false,
     requiresRestart: true,
     valueSet: [
+      // Opus 5.5: ONLY the 1M variant is offered (owner decision 2026-09-23, Marveen 28541).
+      'claude-opus-5-5[1m]',
       'claude-opus-5',
       'claude-opus-5[1m]',
+      'claude-sonnet-5-5',
       'claude-sonnet-5',
       'claude-fable-5',
+      'claude-fable-5-1',
       'claude-opus-4-8[1m]',
       'claude-haiku-4-5-20251001',
     ],
+  },
+  // --- Claude plans module (PR2b/PR2c) ---
+  // Gates BOTH POST /api/claude-plans/rotate (returns 409 while off) and the
+  // heartbeat script's decision to call it (scripts/claude-plan-rotate-check.ts)
+  // -- see docs/superpowers/specs/2026-09-11-claude-key-rotation-design.md
+  // sections 6-7. Default OFF: staging verification (live session-restart,
+  // the riskiest part of this feature) happens before an operator ever flips
+  // this to '1'.
+  {
+    key: 'CLAUDE_ROTATION_ENABLED',
+    type: 'boolean',
+    default: '0',
+    description: 'Automata Claude-kulcs rotáció: ha a fő agent aktív előfizetése kifogy, automatikusan váltson egy másik regisztrált planre. Előfeltétel: MAIN_AGENT_ISOLATED_CONFIG=1 és legalább 2 regisztrált plan a claude-plans.json-ban. A váltás a fő agent session-jének újraindításával jár.',
+    module: 'claude-plans',
+    secret: false,
+    requiresRestart: false,
+  },
+  // Opt-in: the shared fleet token (store/.claude-oauth-token) follows the
+  // main agent's rotation. Default OFF -- with it off, a rotation touches the
+  // main agent only, exactly as before. Read at rotation time by
+  // POST /api/claude-plans/rotate (src/web/claude-plan-fleet-wiring.ts).
+  {
+    key: 'CLAUDE_ROTATION_FLEET',
+    type: 'boolean',
+    default: '0',
+    description: 'A flotta is kövesse a rotációt: amikor a fő agent egy token-módú planre vált, a közös flotta-token (store/.claude-oauth-token) is erre a plan tokenjére cserélődik (mentéssel), és minden olyan sub-agent újraindul, amely ezt a közös tokent használja. Saját tokenes / saját configDir-os agenteket nem érint. configDir-módú célplannél a flotta-lépés kimarad. Előfeltétel: CLAUDE_ROTATION_ENABLED=1.',
+    module: 'claude-plans',
+    secret: false,
+    requiresRestart: false,
+  },
+  // Opt-in background refresh of IDLE plans' 5h/7d usage by the rotation
+  // heartbeat (scripts/claude-plan-rotate-check.ts -> refreshIdlePlans). Each
+  // probe is a real Messages API call that spends the probed plan's own quota,
+  // so it is off by default and independent of CLAUDE_ROTATION_ENABLED: an
+  // operator can keep the Settings bars fresh without automatic rotation.
+  {
+    key: 'CLAUDE_PLAN_USAGE_REFRESH',
+    type: 'boolean',
+    default: '0',
+    description: 'A tétlen (épp nem használt) token-módú planek 5 órás és heti keretét a rotációs heartbeat a háttérben is lekérdezi, planenként legfeljebb 30 percenként. Minden lekérdezés egy valódi, minimális API-hívás, ami az adott plan saját keretéből fogy, ezért alapból KI. A rotációtól (CLAUDE_ROTATION_ENABLED) függetlenül bekapcsolható, ha csak a Beállítások sávjait akarod frissen tartani.',
+    module: 'claude-plans',
+    secret: false,
+    requiresRestart: false,
   },
 ]
 

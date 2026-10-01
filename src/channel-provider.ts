@@ -1,10 +1,12 @@
 import https from 'node:https'
 import { readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { homedir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { logger } from './logger.js'
 import { formatForTelegram, splitMessage } from './format.js'
 import { markIfTestRun } from './test-run-marker.js'
+import { TOOL_TIMEOUTS } from './tool-timeouts.js'
 
 export type ChannelProviderType = 'telegram' | 'slack' | 'discord' | 'googlechat' | 'teams'
 
@@ -24,6 +26,11 @@ export interface ChannelProvider {
 
 // -- Telegram implementation --
 
+// Every sendMessage below carries a deadline. The scheduler's pending-retry
+// alert stamps `alert_sent_at` BEFORE the send and clears it only on a thrown
+// error, so a socket that never answers would pin the stamp forever and
+// silence that alert for good. A timeout turns the hang into an error the
+// callers already classify as transient (no HTTP status) and retry next tick.
 function telegramHttpPost(token: string, method: string, body: string, contentType: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const req = https.request(
@@ -34,17 +41,43 @@ function telegramHttpPost(token: string, method: string, body: string, contentTy
           'Content-Type': contentType,
           'Content-Length': Buffer.byteLength(body),
         },
+        timeout: TOOL_TIMEOUTS['telegram'],
       },
       (res) => {
-        res.resume()
-        if (res.statusCode === 200) {
+        // Read the body even on HTTP 200: the Bot API can answer 200 with
+        // {"ok":false,...}, and discarding the body turned that into a silent
+        // success -- the same blind spot the bash senders closed in
+        // NOTIFYVAKSWEEP826 (success = transport OK AND "ok":true). TSOKFALSE827.
+        const chunks: Buffer[] = []
+        res.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+        res.on('end', () => {
+          const responseBody = Buffer.concat(chunks).toString('utf-8')
+          if (res.statusCode !== 200) {
+            reject(new Error(`Telegram API ${res.statusCode}: ${responseBody.slice(0, 200)}`))
+            return
+          }
+          try {
+            const parsed = JSON.parse(responseBody) as { ok?: boolean; error_code?: number; description?: string }
+            if (parsed.ok === false) {
+              // Carry the body's error_code in the "Telegram API <code>" shape so
+              // classifySendError sorts it transient/permanent like an HTTP status;
+              // without a code the message stays status-free -> transient (retry).
+              const code = typeof parsed.error_code === 'number' ? ` ${parsed.error_code}` : ''
+              reject(new Error(`Telegram API${code}: ok:false ${String(parsed.description ?? '').slice(0, 200)}`))
+              return
+            }
+          } catch {
+            // A malformed body on HTTP 200 is not a send failure; the message
+            // may well be delivered. Same tolerance as sendTelegramMessage.
+          }
           resolve()
-        } else {
-          reject(new Error(`Telegram API ${res.statusCode}`))
-        }
+        })
+        res.on('error', reject)
       }
     )
     req.on('error', reject)
+    // The `timeout` option only emits the event; the request must be destroyed by hand, which surfaces through the 'error' handler above.
+    req.on('timeout', () => req.destroy(new Error(`Telegram ${method} timed out after ${TOOL_TIMEOUTS['telegram']}ms`)))
     req.write(body)
     req.end()
   })
@@ -196,6 +229,7 @@ const slackProvider: ChannelProvider = {
         unfurl_links: false,
         unfurl_media: false,
       }),
+      signal: AbortSignal.timeout(TOOL_TIMEOUTS['slack']),
     })
     if (!resp.ok) {
       throw new Error(`Slack API HTTP ${resp.status}`)
@@ -300,6 +334,7 @@ const discordProvider: ChannelProvider = {
         'Authorization': `Bot ${token}`,
       },
       body: JSON.stringify({ content: text }),
+      signal: AbortSignal.timeout(TOOL_TIMEOUTS['discord']),
     })
     if (!resp.ok) {
       const body = await resp.text().catch(() => '')
@@ -553,25 +588,118 @@ export function getProvider(type: ChannelProviderType): ChannelProvider {
   return markedProviders[type]
 }
 
+const KNOWN_PROVIDER_TYPES: readonly ChannelProviderType[] = ['telegram', 'slack', 'discord', 'googlechat', 'teams']
+
+export interface ProviderTypeResolution {
+  /** The provider that will actually be used. */
+  type: ChannelProviderType
+  /** The configured value, trimmed. Empty string when nothing was configured. */
+  raw: string
+  /**
+   * A value WAS configured, and it is not one this build knows. The caller gets
+   * `telegram` regardless, which is why this flag has to travel with it.
+   */
+  unrecognised: boolean
+}
+
+/**
+ * Resolve a configured channel-provider name, and say whether it was understood.
+ *
+ * Pure, so the substitution can be tested without touching a log. The falling
+ * back itself is deliberate and stays: a build that refuses to start on an
+ * unknown provider name would turn a typo into an outage. What is not
+ * acceptable is doing it in silence, which is what GH #846 walked into.
+ *
+ * The reporter set `CHANNEL_PROVIDER=none` believing it meant "no channel", and
+ * filed a crash against the respawn path. There is no `none` provider: the value
+ * resolved to `telegram`, so their main session came up on a channel plugin they
+ * had deliberately not configured. A typo (`telegran`, `Slack`) lands in exactly
+ * the same place. The original report is the loud version of this; the silent
+ * substitution is the one that is harder to notice and therefore worse.
+ */
+export function resolveProviderType(envValue: string | undefined): ProviderTypeResolution {
+  const raw = (envValue ?? '').trim()
+  const known = KNOWN_PROVIDER_TYPES.find((t) => t === raw)
+  if (known) return { type: known, raw, unrecognised: false }
+  return { type: 'telegram', raw, unrecognised: raw.length > 0 }
+}
+
+// Say it once per distinct bad value, not once per call: getProviderType is
+// called on every isolated-config provision, and a warning that repeats becomes
+// a warning nobody reads.
+const announcedProviderValues = new Set<string>()
+
 export function getProviderType(envValue: string | undefined): ChannelProviderType {
-  if (envValue === 'slack') return 'slack'
-  if (envValue === 'discord') return 'discord'
-  if (envValue === 'googlechat') return 'googlechat'
-  if (envValue === 'teams') return 'teams'
-  return 'telegram'
+  const resolved = resolveProviderType(envValue)
+  if (resolved.unrecognised && !announcedProviderValues.has(resolved.raw)) {
+    announcedProviderValues.add(resolved.raw)
+    logger.warn(
+      { configured: resolved.raw, using: resolved.type, known: KNOWN_PROVIDER_TYPES },
+      `Unknown channel provider "${resolved.raw}" -- falling back to "${resolved.type}". This is NOT what was configured: ` +
+        `the session will come up on the ${resolved.type} plugin. There is no "none" provider; a channel-less agent is not a supported configuration today.`,
+    )
+  }
+  return resolved.type
+}
+
+/** Test seam: the announce-once memory is process-wide by design. */
+export function resetProviderTypeAnnouncements(): void {
+  announcedProviderValues.clear()
+}
+
+// Compiled location is dist/channel-provider.js, so '..' is the install root --
+// the same convention config.ts uses for PROJECT_ROOT. Computed locally because
+// config.ts imports this module (importing it back would be circular).
+const INSTALL_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+/** TELEGRAM_STATE_DIR / SLACK_STATE_DIR / ... -- the env var the channel plugin
+ *  itself honours. channels.sh exports it into the main session so the plugin,
+ *  its hooks and this server all agree on one directory. */
+export function channelStateDirEnvVar(provider: ChannelProviderType): string {
+  return `${provider.toUpperCase()}_STATE_DIR`
+}
+
+// Main-agent channel state resolution (#915). The shared ~/.claude/channels/
+// default meant ANY other Claude Code session on the host loaded the same bot
+// token and silently took the bot over. The main agent's state is therefore
+// install-scoped (<install>/.claude/channels/<provider>), the way sub-agents'
+// always was. Order:
+//   1. <PROVIDER>_STATE_DIR env override -- the value the plugin itself runs
+//      with, so when set it is authoritative for every reader in this process.
+//   2. legacy ~/.claude/channels/<provider>, but ONLY while it still holds the
+//      .env and the install-scoped dir does not -- i.e. an install whose
+//      channels.sh has not migrated yet. Readers must keep working against the
+//      still-running legacy poller during that window.
+//   3. install-scoped -- the default for migrated AND fresh installs, so a
+//      first onboarding writes the token here and no shared-path copy is ever
+//      born.
+/** The ordering logic alone, pure so the contract is unit-testable without
+ *  touching the real home directory. */
+export function resolveMainChannelStateDir(opts: {
+  envOverride: string | undefined
+  installScoped: string
+  legacy: string
+  hasEnvFile: (dir: string) => boolean
+}): string {
+  if (opts.envOverride) return opts.envOverride
+  if (opts.hasEnvFile(opts.legacy) && !opts.hasEnvFile(opts.installScoped)) return opts.legacy
+  return opts.installScoped
 }
 
 export function channelStateDir(provider: ChannelProviderType, agentDir?: string): string {
-  const base = agentDir
-    ? join(agentDir, '.claude', 'channels')
-    : join(homedir(), '.claude', 'channels')
   const subdir =
     provider === 'slack' ? 'slack'
     : provider === 'discord' ? 'discord'
     : provider === 'googlechat' ? 'googlechat'
     : provider === 'teams' ? 'teams'
     : 'telegram'
-  return join(base, subdir)
+  if (agentDir) return join(agentDir, '.claude', 'channels', subdir)
+  return resolveMainChannelStateDir({
+    envOverride: process.env[channelStateDirEnvVar(provider)],
+    installScoped: join(INSTALL_ROOT, '.claude', 'channels', subdir),
+    legacy: join(homedir(), '.claude', 'channels', subdir),
+    hasEnvFile: (dir) => existsSync(join(dir, '.env')),
+  })
 }
 
 export function readChannelToken(provider: ChannelProviderType, envFilePath: string): string | null {
@@ -590,6 +718,11 @@ export function readChannelToken(provider: ChannelProviderType, envFilePath: str
     : provider === 'googlechat' ? 'GOOGLECHAT_PROJECT_ID'
     : provider === 'teams' ? 'TEAMS_BOT_APP_ID'
     : 'TELEGRAM_BOT_TOKEN'
-  const match = content.match(new RegExp(`${key}=(.+)`))
+  // Anchored to a whole line: a commented-out `# SLACK_BOT_TOKEN=old` or a
+  // prefixed `OLD_TELEGRAM_BOT_TOKEN=` must NOT match. Unanchored, a dead
+  // token left commented in one .env shadowed the live one in the next lookup
+  // location, and a commented-out GOOGLECHAT_PROJECT_ID still counted as a
+  // configured channel for hasChannel/agentHasChannel.
+  const match = content.match(new RegExp(`^\\s*${key}=(.+)$`, 'm'))
   return match ? match[1].trim() : null
 }

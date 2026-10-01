@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS conversation_log (
   created_at INTEGER NOT NULL,
   attachment_kind TEXT,
   attachment_file_id TEXT,
+  reply_to_message_id TEXT,
   UNIQUE(agent_id, chat_id, direction, message_id)
 )
 """
@@ -41,6 +42,7 @@ INDEX = "CREATE INDEX IF NOT EXISTS idx_convlog_agent ON conversation_log(agent_
 _MIGRATION_COLUMNS = (
     ("attachment_kind", "TEXT"),
     ("attachment_file_id", "TEXT"),
+    ("reply_to_message_id", "TEXT"),
 )
 
 RECENT_LIMIT = 20
@@ -100,11 +102,114 @@ def owner_name():
     return "A felhasználó"
 
 
+def agent_id_from_payload(payload):
+    """Session-stable agent identity from a hook payload (LEDGERCWD828).
+
+    The shell cwd is MUTABLE within a session: when the main agent stepped into
+    agents/iris/... for a measurement, its OWN replies to the owner ledgered
+    under iris, the reply guard then found no outbound under the real id and
+    triple-sent an already-answered link. Measured blast radius on the owner
+    chat: 51 outbound rows under 7 names, several of them plain directory
+    names, not agents.
+
+    The session's transcript_path is derived from the agent's own config dir
+    (CLAUDE_CONFIG_DIR), which never changes within a session -- that is the
+    identity anchor. Resolution order:
+      1. transcript_path  (immutable per session)
+      2. MARVEEN_AGENT_ID (explicit launcher override)
+      3. cwd              (last resort, for callers that have nothing else)
+    """
+    payload = payload or {}
+    agent = _agent_id_from_config_path(payload.get("transcript_path"))
+    if agent:
+        return agent
+    env_id = os.environ.get("MARVEEN_AGENT_ID", "").strip()
+    if env_id:
+        return env_id
+    return agent_id_from_cwd(payload.get("cwd"))
+
+
+def _agent_id_from_config_path(path):
+    """Map a transcript/config path to an agent id, or None when the path says
+    nothing (caller falls through to the env/cwd chain).
+
+      <install>/agents/<id>/...  -> <id>            (a sub-agent's config dir)
+      anywhere else in the tree  -> MAIN_AGENT_ID   (.channels-config etc.)
+      under ~/.claude            -> MAIN_AGENT_ID   (non-isolated main session)
+      anything else / empty      -> None
+    """
+    if not path or not isinstance(path, str):
+        return None
+    path = os.path.abspath(path.strip())
+    install = _install_dir().rstrip("/")
+    agents_root = os.path.join(install, "agents")
+    # 1. The CONFIG OWNER is authoritative: a transcript under
+    #    <install>/agents/<id>/... is that agent's isolated config dir, no
+    #    matter where the session's cwd wandered.
+    if path.startswith(agents_root + os.sep):
+        rel = path[len(agents_root) + 1:]
+        head = rel.split(os.sep)[0]
+        return head or None
+    # 2. Non-isolated config roots (~/.claude and friends) key the project dir
+    #    by the session's STARTING cwd, flattened: /a/b -> "-a-b". Every fleet
+    #    agent's tmux session runs this way (measured 2026-08-28: the live
+    #    samu session's transcript sits under
+    #    ~/.claude/projects/-Users-marvin-ClaudeClaw-agents-samu/), so the
+    #    agent id is IN the path -- mapping the whole family to the main agent
+    #    would be the original bug mirrored. Parse the segment instead.
+    seg_agent = _agent_id_from_project_segment(path, install)
+    if seg_agent is not None:
+        return seg_agent
+    if path == install or path.startswith(install + os.sep):
+        return main_agent_id()
+    home_claude = os.path.join(os.path.expanduser("~"), ".claude")
+    if path == home_claude or path.startswith(home_claude + os.sep):
+        return main_agent_id()
+    return None
+
+
+def _agent_id_from_project_segment(path, install):
+    """Read the agent id out of a flattened projects/<segment>/ component.
+
+      .../projects/-Users-...-ClaudeClaw-agents-<id>[-...]/x.jsonl -> <id>
+      .../projects/-Users-...-ClaudeClaw[-...]/x.jsonl             -> MAIN
+      no /projects/ component, or a foreign segment                -> None
+
+    Agent ids may in principle contain hyphens, which the flattening makes
+    ambiguous; when <install>/agents exists its entries disambiguate (longest
+    match wins), otherwise the first hyphen-delimited hunk is taken -- correct
+    for every current fleet name.
+    """
+    marker = os.sep + "projects" + os.sep
+    i = path.find(marker)
+    if i < 0:
+        return None
+    seg = path[i + len(marker):].split(os.sep)[0]
+    flat_install = install.replace(os.sep, "-")
+    agents_prefix = flat_install + "-agents-"
+    if seg.startswith(agents_prefix):
+        rest = seg[len(agents_prefix):]
+        try:
+            names = sorted(os.listdir(os.path.join(install, "agents")), key=len, reverse=True)
+        except OSError:
+            names = []
+        for name in names:
+            if rest == name or rest.startswith(name + "-"):
+                return name
+        head = rest.split("-")[0]
+        return head or None
+    if seg == flat_install or seg.startswith(flat_install + "-"):
+        return main_agent_id()
+    return None
+
+
 def agent_id_from_cwd(cwd):
-    """Which channel agent is this session? Derived from cwd so the hooks are
-    generic across all three agents and never cross-contaminate:
-      <install>/agents/<id>  -> <id>           (sub-agent: dia, erno-ba, ...)
-      <install>               -> MAIN_AGENT_ID  (the main channels agent)
+    """Which channel agent is this session? Derived from cwd. LAST-RESORT ONLY:
+    the cwd changes within a session (a `cd` into agents/<x>/ re-attributes
+    every later row), so payload-carrying hooks must call agent_id_from_payload
+    instead -- its docstring carries the measured incident (LEDGERCWD828).
+      <install>/agents/<id>[/...]  -> <id>           (a sub-agent)
+      anywhere else in the tree    -> MAIN_AGENT_ID   (the main channels agent)
     """
     cwd = (cwd or "").rstrip("/")
     install = _install_dir().rstrip("/")
@@ -120,9 +225,13 @@ def agent_id_from_cwd(cwd):
         # identities and makes the reply guard block on a question it has
         # already answered, because it finds no outbound under the real id.
         return main_agent_id()
-    # Fallback: last path component (best effort), else main.
-    base = os.path.basename(cwd)
-    return base or main_agent_id()
+    # Outside the install tree: never invent an agent id from the directory name.
+    # The launcher can name the session explicitly via MARVEEN_AGENT_ID; failing
+    # that, attribute to the main agent rather than a bogus basename.
+    env_id = os.environ.get("MARVEEN_AGENT_ID", "").strip()
+    if env_id:
+        return env_id
+    return main_agent_id()
 
 
 def connect():
@@ -138,21 +247,28 @@ def connect():
 
 
 def log_inbound(agent_id, chat_id, message_id, text, ts,
-                attachment_kind=None, attachment_file_id=None):
+                attachment_kind=None, attachment_file_id=None,
+                reply_to_message_id=None):
     """Record an inbound user message. Idempotent on (agent_id, chat_id, in, message_id).
 
     attachment_kind/file_id: set for voice / video_note messages that arrived
     WITHOUT a transcript, so a respawned session can still download and
-    transcribe the audio instead of losing the message content forever."""
+    transcribe the audio instead of losing the message content forever.
+
+    reply_to_message_id: the message_id this inbound quoted (Telegram
+    ctx.message.reply_to_message), when the sender replied to a specific
+    earlier message instead of writing standalone. Only the id is kept, not an
+    excerpt -- the quoted text is a copy of that other row's own `text` and is
+    already recoverable via a lookup on message_id (df3b48a7)."""
     con = connect()
     try:
         con.execute(
             "INSERT OR IGNORE INTO conversation_log"
             " (agent_id, chat_id, direction, message_id, text, ts, created_at,"
-            "  attachment_kind, attachment_file_id)"
-            " VALUES (?, ?, 'in', ?, ?, ?, ?, ?, ?)",
+            "  attachment_kind, attachment_file_id, reply_to_message_id)"
+            " VALUES (?, ?, 'in', ?, ?, ?, ?, ?, ?, ?)",
             (str(agent_id), str(chat_id), str(message_id), text, ts, int(time.time()),
-             attachment_kind, attachment_file_id),
+             attachment_kind, attachment_file_id, reply_to_message_id),
         )
         con.commit()
     finally:

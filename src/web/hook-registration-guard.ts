@@ -23,20 +23,35 @@ import { atomicWriteFileSync } from './atomic-write.js'
 
 // Hook script filenames this app registers into settings.json files
 // (templates/settings.json.template, ensureAgentStalenessHook, the
-// PreToolUse gates, and the telegram-progress installer). Used to decide
-// whether a missing-file hook entry is OURS (prunable) or foreign (kept).
+// PreToolUse gates, and the telegram/slack-progress watchdog installers).
+// Used to decide whether a missing-file hook entry is OURS (prunable) or
+// foreign (kept).
 export const KNOWN_HOOK_SCRIPTS: readonly string[] = [
   'taskstate-replay.py',
   'voice-reply-directive.py',
   'staleness-guard.py',
+  'provenance-gate.py',
   'email-send-gate.mjs',
   'self-pace-gate.mjs',
   'telegram_progress.py',
   'telegram_progress_clear.py',
   'telegram_progress_watchdog.py',
+  // The Slack counterpart: the three settings hooks are repo-shipped in
+  // .claude/settings.json (#1305); the watchdog comes from
+  // scripts/install-slack-progress-hook.sh.
+  'slack_progress.py',
+  'slack_progress_clear.py',
+  'slack_progress_reply_clear.py',
+  'slack_progress_watchdog.py',
   'inbox-drain.py',
   'channel-inbox-drain.py',
   'ledger-capture.py',
+  'skill-usage-capture.py',
+  'tool-log-capture.py',
+  'memory-frontmatter-gate.py',
+  // The /clear continuity pair: SessionEnd capture + SessionStart replay.
+  'clear-capture.py',
+  'clear-replay.py',
 ]
 
 // Path fragment that marks a checkout as an agent worktree. Kept

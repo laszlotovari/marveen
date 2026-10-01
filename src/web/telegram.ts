@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { homedir } from 'node:os'
 import { PROJECT_ROOT } from '../config.js'
+import { channelStateDir } from '../channel-provider.js'
 import { resolveOwnerChatId } from '../owner-chat.js'
 import { logger } from '../logger.js'
 import { agentDir, readFileOr, findAvatarForAgent } from './agent-config.js'
@@ -54,11 +54,11 @@ export function readAgentTeamsConfig(name: string): { hasTeams: boolean } {
   return { hasTeams: !!m?.[1]?.trim() }
 }
 
-// Marveen's Telegram channel lives under the global ~/.claude path, not
-// under agents/marveen, because the main agent reuses the system Claude
-// Code channel install. Read it the same way the plugin does.
+// Marveen's channel state is resolved by channelStateDir (#915): env
+// override, then the legacy shared ~/.claude path while unmigrated, then the
+// install-scoped dir. Read it the same way the plugin does.
 export function readMarveenTelegramConfig(): { hasTelegram: boolean; botUsername?: string } {
-  const envPath = join(homedir(), '.claude', 'channels', 'telegram', '.env')
+  const envPath = join(channelStateDir('telegram'), '.env')
   if (!existsSync(envPath)) return { hasTelegram: false }
   const content = readFileOr(envPath, '')
   const tokenMatch = content.match(/TELEGRAM_BOT_TOKEN=(.+)/)
@@ -67,34 +67,33 @@ export function readMarveenTelegramConfig(): { hasTelegram: boolean; botUsername
   return { hasTelegram: true, botUsername: marveenBotUsernameCache.value }
 }
 
-// Discord / Slack mirror of the above: same global ~/.claude/channels path
-// since Marveen's channel session reuses the system install. Lets the
-// dashboard answer "is Marveen connected?" per provider without per-agent
-// state lookup. botUsername omitted -- the Discord/Slack flows don't
+// Discord / Slack mirror of the above: same channelStateDir resolution as
+// the Telegram reader. Lets the dashboard answer "is Marveen connected?"
+// per provider without per-agent state lookup. botUsername omitted -- the Discord/Slack flows don't
 // surface a @username the same way Telegram does.
 export function readMarveenDiscordConfig(): { hasDiscord: boolean } {
-  const envPath = join(homedir(), '.claude', 'channels', 'discord', '.env')
+  const envPath = join(channelStateDir('discord'), '.env')
   if (!existsSync(envPath)) return { hasDiscord: false }
   const tokenMatch = readFileOr(envPath, '').match(/DISCORD_BOT_TOKEN=(.+)/)
   return { hasDiscord: !!tokenMatch?.[1]?.trim() }
 }
 
 export function readMarveenGooglechatConfig(): { hasGooglechat: boolean } {
-  const envPath = join(homedir(), '.claude', 'channels', 'googlechat', '.env')
+  const envPath = join(channelStateDir('googlechat'), '.env')
   if (!existsSync(envPath)) return { hasGooglechat: false }
   const m = readFileOr(envPath, '').match(/GOOGLECHAT_PROJECT_ID=(.+)/)
   return { hasGooglechat: !!m?.[1]?.trim() }
 }
 
 export function readMarveenTeamsConfig(): { hasTeams: boolean } {
-  const envPath = join(homedir(), '.claude', 'channels', 'teams', '.env')
+  const envPath = join(channelStateDir('teams'), '.env')
   if (!existsSync(envPath)) return { hasTeams: false }
   const m = readFileOr(envPath, '').match(/TEAMS_BOT_APP_ID=(.+)/)
   return { hasTeams: !!m?.[1]?.trim() }
 }
 
 export function readMarveenSlackConfig(): { hasSlack: boolean } {
-  const envPath = join(homedir(), '.claude', 'channels', 'slack', '.env')
+  const envPath = join(channelStateDir('slack'), '.env')
   if (!existsSync(envPath)) return { hasSlack: false }
   const tokenMatch = readFileOr(envPath, '').match(/SLACK_BOT_TOKEN=(.+)/)
   return { hasSlack: !!tokenMatch?.[1]?.trim() }
@@ -104,7 +103,7 @@ export function readMarveenSlackConfig(): { hasSlack: boolean } {
 export const marveenBotUsernameCache: { value?: string; fetchedAt: number } = { fetchedAt: 0 }
 
 export async function refreshMarveenBotUsername(): Promise<void> {
-  const envPath = join(homedir(), '.claude', 'channels', 'telegram', '.env')
+  const envPath = join(channelStateDir('telegram'), '.env')
   if (!existsSync(envPath)) return
   const tokenMatch = readFileOr(envPath, '').match(/TELEGRAM_BOT_TOKEN=(.+)/)
   const token = tokenMatch?.[1]?.trim()
@@ -140,12 +139,24 @@ export async function sendTelegramMessage(token: string, chatId: string, text: s
   // Some callers need the message id back (the approval gate stamps it onto
   // the request row so the decision UI can reference the exact message). A
   // malformed success body is not a send failure -- return null, never throw.
+  type SendResponse = { ok?: boolean; error_code?: number; description?: string; result?: { message_id?: number } }
+  let data: SendResponse | null = null
   try {
-    const data = await resp.json() as { result?: { message_id?: number } }
-    return typeof data.result?.message_id === 'number' ? data.result.message_id : null
+    data = await resp.json() as SendResponse
   } catch {
     return null
   }
+  // HTTP 200 + {"ok":false} is a REJECTED send, not a malformed success: treat
+  // it exactly like a non-2xx so the callers' try/catch + classifySendError
+  // paths see it -- success means transport OK AND ok:true, the same contract
+  // the bash senders adopted in NOTIFYVAKSWEEP826. TSOKFALSE827. The
+  // "Telegram API <code>" shape keeps classifySendError's transient/permanent
+  // sorting; a code-less body stays status-free -> transient (retry).
+  if (data?.ok === false) {
+    const code = typeof data.error_code === 'number' ? ` ${data.error_code}` : ''
+    throw new Error(`Telegram API${code}: ok:false ${String(data.description ?? '').slice(0, 200)}`)
+  }
+  return typeof data?.result?.message_id === 'number' ? data.result.message_id : null
 }
 
 export async function sendTelegramPhoto(token: string, chatId: string, photoPath: string, caption: string): Promise<void> {
@@ -157,12 +168,30 @@ export async function sendTelegramPhoto(token: string, chatId: string, photoPath
   parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="avatar.png"\r\nContent-Type: image/png\r\n\r\n`))
   parts.push(fileData)
   parts.push(Buffer.from(`\r\n--${boundary}--\r\n`))
-  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+  const resp = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
     method: 'POST',
     headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     body: Buffer.concat(parts),
     signal: AbortSignal.timeout(TOOL_TIMEOUTS['telegram']),
   })
+  // This sender checked NOTHING -- a 4xx or an ok:false vanished without a
+  // trace. Same honest-send contract as sendTelegramMessage (TSOKFALSE827):
+  // success means transport OK AND ok:true; every caller already wraps this
+  // in try/catch, so the throw lands in an existing warn path.
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '')
+    throw new Error(`Telegram API ${resp.status}: ${body.slice(0, 200)}`)
+  }
+  try {
+    const data = await resp.json() as { ok?: boolean; error_code?: number; description?: string }
+    if (data.ok === false) {
+      const code = typeof data.error_code === 'number' ? ` ${data.error_code}` : ''
+      throw new Error(`Telegram API${code}: ok:false ${String(data.description ?? '').slice(0, 200)}`)
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Telegram API')) throw err
+    // Malformed body on HTTP 200: not a send failure.
+  }
 }
 
 export async function sendWelcomeMessage(agentName: string, token: string): Promise<void> {

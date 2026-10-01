@@ -147,6 +147,7 @@ Every dashboard-editable setting is a registry entry with the following fields:
 |-----|------|---------|-------------|---------|
 | `DASHBOARD_PUBLIC_URL` | string | (empty) | Publicly accessible URL of the dashboard | yes |
 | `OLLAMA_URL` | string | `http://localhost:11434` | Ollama API base URL | yes |
+| `MEMORY_IMPORT_CATEGORIZE_MODEL` | string | (empty) | Ollama model that tiers memories on import (override); empty = auto-detect an installed `gemma4`, else all warm | yes |
 
 **Registry -- Heartbeat module:**
 
@@ -382,6 +383,7 @@ Key configuration variables live in the launchd plist (`~/Library/LaunchAgents/c
 | `ANTHROPIC_API_KEY` | Claude API key |
 | `OWNER_NAME` | Owner name (e.g. "Jónás Gergő") |
 | `BOT_NAME` | Main agent name (e.g. "Jarvis") |
+| `VOICE_TRANSCRIBE_INBOUND` | `1` = transcribe inbound voice notes for text-mode agents too (default off; per-agent `voice.transcribeInbound` overrides). See `voice.md` |
 
 ---
 

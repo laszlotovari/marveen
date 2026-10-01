@@ -501,9 +501,45 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Does an installed claude actually LAUNCH? On an AVX-less x86 host the official
 # installer's Bun standalone binary SIGILLs / hangs on start, so `command -v`
-# alone is not enough -- we verify it runs (with a timeout so a hanging Bun
-# binary cannot wedge the installer).
-_claude_runs() { command -v claude >/dev/null 2>&1 && timeout 25 claude --version </dev/null >/dev/null 2>&1; }
+# alone is not enough -- we verify it runs. `--version` is NOT that probe:
+# measured 2026-09-23 on the AVX-less pilot VPS (CLIRUNSVERZIO923), the
+# 2.1.200+ Bun ELF answers `--version` with exit 0 and then spins silently on a
+# real prompt, so a host that already carries a latest claude would pass the
+# gate and get an install on which no agent prompt ever runs. The probe is a
+# real `-p` prompt, made auth-free on purpose: an isolated EMPTY config dir and
+# the auth env unset make a healthy CLI exit 1 within ~2 s ("Not logged in",
+# JSON on stdout, no API call, nothing written to the real config), while a Bun
+# binary without AVX either SIGILLs (exit 132) or hangs until `timeout` (124).
+# "Runs" therefore means: exited on its own with a code below 124.
+_claude_runs() {
+  command -v claude >/dev/null 2>&1 || return 1
+  local probe_cfg rc
+  probe_cfg="$(mktemp -d 2>/dev/null || echo "/tmp/claude-probe-$$")"
+  mkdir -p "$probe_cfg"
+  env -u CLAUDE_CODE_OAUTH_TOKEN -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN \
+    CLAUDE_CONFIG_DIR="$probe_cfg" DISABLE_AUTOUPDATER=1 \
+    timeout "${CLAUDE_PROBE_TIMEOUT:-25}" claude -p 'ping' --max-turns 1 --output-format json \
+    </dev/null >/dev/null 2>&1
+  rc=$?
+  rm -rf "$probe_cfg"
+  # 124 = hung until timeout, 125-127 = could not even exec, 128+ = killed by a signal (SIGILL/SIGSEGV)
+  [ "$rc" -lt 124 ]
+}
+# A claude that is on PATH but does not launch (typically the official
+# installer's Bun ELF at ~/.local/bin/claude) would keep SHADOWING the pinned
+# Node build: ~/.local/bin is first on PATH and `npm -g` lands in /usr/bin or
+# ~/.npm-global. Move it aside (reversible: <path>.avx-broken) so the pin wins.
+_shelve_broken_claude() {
+  local p
+  p="$(command -v claude 2>/dev/null || true)"
+  [ -n "$p" ] || return 0
+  if mv "$p" "${p}.avx-broken" 2>/dev/null; then
+    warn "A mar telepitett claude ($p) AVX nelkul nem indul; felretettem: ${p}.avx-broken"
+  else
+    warn "A mar telepitett claude ($p) AVX nelkul nem indul, es nem tudtam felretenni -- a pinnelt verziot arnyekolhatja."
+  fi
+  hash -r
+}
 
 # Pinned Node-based fallback for AVX-less hosts. @2.1.110 is the LAST version
 # that ships bin=cli.js (a `#!/usr/bin/env node` entrypoint) running without
@@ -515,6 +551,9 @@ CLAUDE_PIN="2.1.110"
 if _claude_runs; then
   ok "claude mar telepitve es fut: $(claude --version 2>/dev/null || echo 'ok')"
 else
+  # Present on PATH but did not launch (the probe above failed while the
+  # binary exists): remembered here so the AVX-less branch can shelve it.
+  CLAUDE_PREEXISTING_BROKEN="$(command -v claude 2>/dev/null || true)"
   # AVX pre-flight: the official installer's Bun binary needs AVX. Only x86
   # (has a `flags :` line in /proc/cpuinfo) can lack it; ARM (`Features :`, no
   # `avx`) runs the arm64 Bun binary fine, so it takes the official path.
@@ -526,6 +565,7 @@ else
     # interactive shells; channels.sh exports it for the agent sessions).
     ensure_in_rc 'DISABLE_AUTOUPDATER' 'export DISABLE_AUTOUPDATER=1'
     export DISABLE_AUTOUPDATER=1
+    [ -n "${CLAUDE_PREEXISTING_BROKEN:-}" ] && _shelve_broken_claude
     if command -v npm >/dev/null 2>&1; then
       # NPMPERM1: nodesource-os gepen a globalis node_modules root-tulajdonu
       # lehet. Auto-mod: nem kerdez, sudo-ra valt lathato megjegyzessel.
@@ -1031,7 +1071,12 @@ echo -e "${BOLD}  Konfiguracio letrehozasa...${NC}"
 env_merge_key() {
   # env_merge_key KEY VALUE -- drop any existing KEY= line, append KEY=VALUE.
   _emk_tmp="$INSTALL_DIR/.env.tmp.$$"
-  grep -v "^$1=" "$INSTALL_DIR/.env" > "$_emk_tmp" 2>/dev/null || true
+  # ENVTMPMODE925: the tmp holds the WHOLE .env (bot token, API keys) until the
+  # mv below, so it is created 0600 from its first byte -- at the umask default
+  # it was world-readable for that window (the VAULTMODE818 pattern). The rm
+  # matters too: a leftover tmp of the same name would keep its old mode.
+  rm -f "$_emk_tmp"
+  (umask 077; grep -v "^$1=" "$INSTALL_DIR/.env" > "$_emk_tmp" 2>/dev/null) || true
   printf '%s=%s\n' "$1" "$2" >> "$_emk_tmp"
   mv "$_emk_tmp" "$INSTALL_DIR/.env"
   chmod 600 "$INSTALL_DIR/.env"
@@ -1259,11 +1304,18 @@ if [ -d "$SEED_SCHED_DIR" ]; then
   mkdir -p "$SCHED_TARGET_DIR"
   SCHED_NEW=0
   SCHED_SKIP=0
+  SCHED_TOMBSTONE="$SCHED_TARGET_DIR/.removed-defaults"
   for tpl in "$SEED_SCHED_DIR"/*/; do
     [ -d "$tpl" ] || continue
     task_name=$(basename "$tpl")
     [[ "$task_name" == "bumblebee-hygiene-scan" ]] && continue
     target="$SCHED_TARGET_DIR/$task_name"
+    # #796: a reinstall over an existing box must honor the dashboard's record
+    # of a deleted default (.removed-defaults); a UI re-create clears it.
+    if [ -f "$SCHED_TOMBSTONE" ] && grep -qxF "$task_name" "$SCHED_TOMBSTONE" 2>/dev/null; then
+      SCHED_SKIP=$((SCHED_SKIP + 1))
+      continue
+    fi
     if [ -d "$target" ]; then
       SCHED_SKIP=$((SCHED_SKIP + 1))
       continue
@@ -1450,8 +1502,25 @@ echo ""
 echo -e "${BOLD}$(_t section_6_linux)${NC}"
 
 # --- Ollama telepites ---
+#
+# Where the RUNTIME will look. src/config.ts:331 reads OLLAMA_URL and falls back
+# to http://localhost:11434; this step used to hardcode that fallback in seven
+# places, so an install pointed at a non-default or remote Ollama probed and
+# pulled the embedding model somewhere the running fleet would never read --
+# and installed a second, local daemon it did not need. Same precedence as the
+# runtime: the environment first, then the .env this installer has already
+# written, then the historical default.
+OLLAMA_API="${OLLAMA_URL:-}"
+if [ -z "$OLLAMA_API" ] && [ -f "$INSTALL_DIR/.env" ]; then
+  OLLAMA_API="$(grep -E '^OLLAMA_URL=' "$INSTALL_DIR/.env" | head -1 | cut -d= -f2- | tr -d ' "')"
+fi
+OLLAMA_API="${OLLAMA_API:-http://localhost:11434}"
+
 echo -e "  Ollama ellenorzese (szemantikus memoria kereseshez)..."
-if command -v ollama &>/dev/null; then
+if curl -s --max-time 5 "${OLLAMA_API}/api/version" &>/dev/null; then
+  # Answering already: nothing to install, wherever it happens to run.
+  ok "ollama elerheto (${OLLAMA_API})"
+elif command -v ollama &>/dev/null; then
   ok "ollama mar telepitve"
 else
   echo -e "  Ollama telepitese..."
@@ -1471,16 +1540,18 @@ else
   fi
 fi
 
-# A service-inditas es modell-letoltes csak akkor fut, ha az ollama tenyleg telepult.
-if command -v ollama &>/dev/null; then
+# The service-start + model-pull block runs when there is a local binary to
+# start OR an API to pull through -- a remote/containerised Ollama has no local
+# binary, but the model still has to exist on it.
+if command -v ollama &>/dev/null || curl -s --max-time 5 "${OLLAMA_API}/api/version" &>/dev/null; then
 # A telepito letrehoz egy ollama.service systemd egységet és elindítja.
 # Ha megis nem futna, systemctl-lel indítjuk -- NEM ollama serve &
-if ! curl -s http://localhost:11434/api/version &>/dev/null; then
+if ! curl -s "${OLLAMA_API}/api/version" &>/dev/null; then
   echo -e "$(_t linux.ollama_starting)"
   sudo systemctl enable --now ollama 2>/dev/null || true
   # Megvarjuk amig az API valaszol (max 15 mp)
   for i in $(seq 1 15); do
-    curl -s http://localhost:11434/api/version &>/dev/null && break
+    curl -s "${OLLAMA_API}/api/version" &>/dev/null && break
     sleep 1
   done
 fi
@@ -1498,11 +1569,11 @@ ollama_pull() {
   # exits non-zero, the assignment inherits it, and the ERR trap kills the
   # install at step "ollama-whisper". So skip -- non-fatal -- whenever the API is
   # not answering, instead of trying a pull that cannot work.
-  if ! curl -s --max-time 5 http://localhost:11434/api/version &>/dev/null; then
-    warn "ollama API nem valaszol (:11434) -- $model letoltese kimarad (a szolgaltatas nem all fel). Kesobb: ollama serve && ollama pull $model"
+  if ! curl -s --max-time 5 "${OLLAMA_API}/api/version" &>/dev/null; then
+    warn "ollama API nem valaszol (${OLLAMA_API}) -- $model letoltese kimarad (a szolgaltatas nem all fel). Kesobb: ollama serve && ollama pull $model"
     return 0
   fi
-  if curl -s http://localhost:11434/api/tags | grep -q "\"$model\""; then
+  if curl -s "${OLLAMA_API}/api/tags" | grep -q "\"$model\""; then
     ok "$model mar letoltve"
     return 0
   fi
@@ -1512,7 +1583,7 @@ ollama_pull() {
   # assignment aborts the script when its pipeline exits non-zero (empty body ->
   # json.load raises -> python3 exits 1). The guard turns that into the warn path.
   status=$(curl -s --max-time 600 \
-    -X POST http://localhost:11434/api/pull \
+    -X POST "${OLLAMA_API}/api/pull" \
     -H 'Content-Type: application/json' \
     -d "{\"model\": \"$model\", \"stream\": false}" |
     python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','?'))" 2>/dev/null) || status=""
@@ -1658,6 +1729,8 @@ NODE_PATH="$(which node)"
 DASH_UNIT="${SERVICE_ID}-dashboard"
 CHAN_UNIT="${SERVICE_ID}-channels"
 MORN_UNIT="${SERVICE_ID}-morning"
+KEEPALIVE_UNIT="${SERVICE_ID}-channel-keepalive-probe"
+INBOX_OBSERVER_UNIT="${SERVICE_ID}-main-inbox-observer"
 
 # Detect the host timezone so the scheduled-task runner (which reads
 # cron expressions in Node's local TZ) fires at the operator's wall
@@ -1775,6 +1848,17 @@ ${TZ_LINE}
 EOF
 
 # ${MORN_UNIT}.timer
+# WRITTEN BUT NOT ENABLED (see the enable list further down). The morning
+# briefing ships TWICE: as this 07:27 timer and as the seeded
+# scheduled-tasks/reggeli-napindito task at 07:30. Two runs of the same work
+# three minutes apart is one too many, and the timer is the weaker of the two:
+# it launches a headless `claude -p` whose config dir carries no channel
+# allowlist, so its reply tool rejects the owner's chat_id and the run refuses
+# itself as a prompt injection (observed 2026-09-13, and it stamped the day as
+# delivered on the way out). The scheduled task runs inside the live channel
+# session, which has the allowlist. The unit files stay on disk so an operator
+# who wants the timer path can `systemctl --user enable --now <id>-morning.timer`.
+#
 # NO Requires=/Wants= on the service here: a [Unit] dependency on the
 # triggered service makes EVERY activation of the timer unit (each systemd
 # user-manager start, not just the 07:27 elapse) queue an immediate start of
@@ -1794,6 +1878,100 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# ${KEEPALIVE_UNIT}.service/.timer -- token-free IDLE-path keepalive producer.
+#
+# WHY THIS MUST BE INSTALLED (measured on a live install, night of 2026-09-12/13:
+# 13 service restarts, one every ~50 minutes, all night). store/.channel-keepalive
+# has two intended producers: organic inbound (channel-monitor advances the mtime
+# on every ingested message -- covers BUSY periods) and this probe (covers QUIET
+# periods). The repo shipped scripts/channel-keepalive-probe.sh plus placeholder
+# units under scripts/systemd/, but nothing installed them, so on a real host the
+# ONLY producer was inbound traffic. Every night, as soon as the owner stopped
+# writing, the file aged past the dashboard's 45-minute liveness ceiling and
+# channel-monitor "recovered" a perfectly healthy session: respawn-pane (the main
+# agent's conversation gone, restarted fresh with no --continue), which killed the
+# telegram plugin with it, which tripped channels.sh's own dead-plugin watchdog
+# 181s later, which exited 1 for a second, whole-unit restart. A silent channel is
+# normal at 3am; the watchdog read it as a wedge because nothing was left to prove
+# otherwise.
+#
+# The probe does NOT fake liveness: it touches the keepalive only after proving
+# from the process tree that the channels tmux session, its claude pid, and a
+# telegram poller descending from that pid are all alive. A genuinely dead pipe
+# still ages out and still gets recovered.
+cat >"$SYSTEMD_DIR/${KEEPALIVE_UNIT}.service" <<EOF
+[Unit]
+Description=${BOT_NAME} token-free idle-path channel keepalive probe
+
+[Service]
+Type=oneshot
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/scripts/channel-keepalive-probe.sh
+Environment=PATH=$HOME/.local/bin:$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=$HOME
+${TZ_LINE}
+StandardOutput=append:$INSTALL_DIR/store/channel-keepalive-probe.log
+StandardError=append:$INSTALL_DIR/store/channel-keepalive-probe.log
+EOF
+
+# Same "no Requires=/Wants= on the triggered service" rule as the morning timer
+# above: the [Timer] section already binds to ${KEEPALIVE_UNIT}.service by name.
+# 3 minutes is far inside every consumer's staleness threshold (the dashboard's
+# 45-minute ceiling, channel-watchdog's 15).
+cat >"$SYSTEMD_DIR/${KEEPALIVE_UNIT}.timer" <<EOF
+[Unit]
+Description=${BOT_NAME} channel keepalive probe every 3 minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=3min
+AccuracySec=20s
+
+[Install]
+WantedBy=timers.target
+EOF
+
+# ${INBOX_OBSERVER_UNIT}.service/.timer -- the main agent's inbox queue, watched
+# from OUTSIDE the dashboard process. Every other delivery path is watched by
+# something; the main agent's is not, and its only in-process reader lives in
+# the dashboard itself, so a stopped or wedged dashboard takes the watcher down
+# with it and mail to the main agent sits pending with nobody to notice.
+#
+# The repo shipping the script is not enough -- that is the exact defect the
+# observer's own header names about the unscheduled watchdog script, and it is
+# why this block exists next to the keepalive probe rather than in a README.
+cat >"$SYSTEMD_DIR/${INBOX_OBSERVER_UNIT}.service" <<EOF
+[Unit]
+Description=${BOT_NAME} out-of-process observer of the main agent's inbox queue
+
+[Service]
+Type=oneshot
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/scripts/main-inbox-observer.sh
+Environment=PATH=$HOME/.local/bin:$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=$HOME
+${TZ_LINE}
+StandardOutput=append:$INSTALL_DIR/store/main-inbox-observer.log
+StandardError=append:$INSTALL_DIR/store/main-inbox-observer.log
+EOF
+
+# Deliberately NOT bound to the dashboard unit: "the dashboard is down" is one
+# of the states this observes, so the timer has to survive it. Six ticks fit
+# inside the 30-minute stall threshold, so one missed tick cannot push the
+# alert past the window.
+cat >"$SYSTEMD_DIR/${INBOX_OBSERVER_UNIT}.timer" <<EOF
+[Unit]
+Description=${BOT_NAME} main-agent inbox observer every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # marveen-host-watchdog.service -- host/WSL-VM restart detector (btime-based).
 # Distinguishes a whole-VM restart (all units down at once, NOT an app crash)
 # from a service crash, and Telegrams it. See scripts/host-restart-watchdog.sh.
@@ -1807,7 +1985,6 @@ Wants=network-online.target
 Type=oneshot
 ExecStart=$INSTALL_DIR/scripts/host-restart-watchdog.sh
 Environment=MARVEEN_STORE=$INSTALL_DIR/store
-Environment=TELEGRAM_ENV=$HOME/.claude/channels/telegram/.env
 Environment=PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=HOME=$HOME
 ${TZ_LINE}
@@ -1828,7 +2005,6 @@ Description=${BOT_NAME} app-crash notifier for %i
 [Service]
 Type=oneshot
 ExecStart=$INSTALL_DIR/scripts/unit-fail-notify.sh %i
-Environment=TELEGRAM_ENV=$HOME/.claude/channels/telegram/.env
 Environment=PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=HOME=$HOME
 ${TZ_LINE}
@@ -1878,14 +2054,17 @@ if pidof systemd >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; the
   # macOS branch had. `if` rather than `&&`: a failing enable inside an if
   # CONDITION is exempt from errexit and from the ERR trap, so the installer
   # reports it instead of dying on it.
-  if systemctl --user enable "${DASH_UNIT}" "${CHAN_UNIT}" "${MORN_UNIT}.timer" "${SERVICE_ID}-host-watchdog.service" 2>/dev/null; then
+  # ${MORN_UNIT}.timer is deliberately NOT in this list -- the seeded
+  # reggeli-napindito scheduled task already delivers the morning briefing at
+  # 07:30 from inside the live channel session. See the timer's comment above.
+  if systemctl --user enable "${DASH_UNIT}" "${CHAN_UNIT}" "${KEEPALIVE_UNIT}.timer" "${INBOX_OBSERVER_UNIT}.timer" "${SERVICE_ID}-host-watchdog.service" 2>/dev/null; then
     ok "systemd unitok generalva es engedelyezve"
   else
     warn "A unit-fajlok elkeszultek, de az engedelyezesuk nem sikerult -- ujrainditas utan a szolgaltatasok nem indulnak el maguktol."
     # ALL FOUR units the enable above covers, not just the two services. A
-    # command that silently drops the timer and the watchdog would leave them
-    # disabled while the operator sees no error and believes the fix worked --
-    # an incomplete instruction ends the same way as a false claim.
+    # command that silently drops the keepalive probe or the watchdog would leave
+    # them disabled while the operator sees no error and believes the fix worked
+    # -- an incomplete instruction ends the same way as a false claim.
     # The label gets its own line. With "Javitas most:" in front of the command,
     # the backslashes join all three printed lines into ONE command whose first
     # token is `Javitas`, so a pasted block fails with "Javitas: command not
@@ -1896,7 +2075,7 @@ if pidof systemd >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; the
     echo -e "  ${DIM}Javitas most:${NC}"
     echo -e "  ${DIM}systemctl --user enable \\${NC}"
     echo -e "  ${DIM}    ${DASH_UNIT} ${CHAN_UNIT} \\${NC}"
-    echo -e "  ${DIM}    ${MORN_UNIT}.timer ${SERVICE_ID}-host-watchdog.service${NC}"
+    echo -e "  ${DIM}    ${KEEPALIVE_UNIT}.timer ${INBOX_OBSERVER_UNIT}.timer ${SERVICE_ID}-host-watchdog.service${NC}"
   fi
   systemctl --user start "${DASH_UNIT}" "${CHAN_UNIT}" 2>/dev/null || true
   sleep 2
@@ -1964,11 +2143,37 @@ if [ "$CHANNEL_PROVIDER" = "telegram" ] && [ -n "$BOT_TOKEN" ]; then
 
   ACCESS_FILE="$CHANNEL_DIR/access.json"
 
+  # Is the Telegram bridge actually running?
+  #
+  # `systemctl --user is-active` alone answers a NARROWER question than this
+  # step needs -- "does a systemd USER unit for it exist and run" -- and the two
+  # answers diverge on exactly the hosts the [7/7] step already handles. There,
+  # `pidof systemd` / `systemctl --user status` failing is not an error: the
+  # installer falls back to a direct nohup launch and prints
+  #   "Channels (Telegram bridge) fut (nohup, pid N)"
+  # ...and then this check called the very bridge it had just started "not
+  # started", skipped pairing, and left the install with ALLOWED_CHAT_ID=0 plus
+  # a red warning telling the operator to pair by hand. WSL is a documented
+  # supported platform and has no systemd user session by default, so this is
+  # not an exotic shape.
+  #
+  # Ask the same three ways start.sh/stop.sh already distinguish -- user unit,
+  # system unit, direct launch -- so pairing works wherever the launch worked.
+  _bridge_is_up() {
+    systemctl --user is-active --quiet "${CHAN_UNIT}" 2>/dev/null && return 0
+    systemctl is-active --quiet "${CHAN_UNIT}" 2>/dev/null && return 0
+    # The pidfile start.sh writes on its no-systemd branch. `kill -0` only
+    # probes for existence; it sends no signal.
+    local _pid
+    _pid="$(cat "$INSTALL_DIR/store/channels.pid" 2>/dev/null)" || return 1
+    [ -n "$_pid" ] && kill -0 "$_pid" 2>/dev/null
+  }
+
   # Megvarjuk amig a channels service tenyleg valaszol (max 15 mp)
   echo -e "  Varakozas a Telegram bridge elindulasara..."
   BRIDGE_OK=false
   for i in $(seq 1 15); do
-    if systemctl --user is-active --quiet "${CHAN_UNIT}" 2>/dev/null; then
+    if _bridge_is_up; then
       BRIDGE_OK=true
       break
     fi
@@ -1976,9 +2181,10 @@ if [ "$CHANNEL_PROVIDER" = "telegram" ] && [ -n "$BOT_TOKEN" ]; then
   done
 
   if [ "$BRIDGE_OK" = "false" ]; then
-    warn "A ${CHAN_UNIT} service nem indult el. Parositas kihagyva."
-    echo -e "  ${DIM}Ellenorizd: journalctl --user -u ${CHAN_UNIT} -n 30${NC}"
-    echo -e "  ${DIM}Kesobb: systemctl --user start ${CHAN_UNIT}, majd irj a botodnak${NC}"
+    warn "A Telegram bridge nem indult el. Parositas kihagyva."
+    echo -e "  ${DIM}systemd-vel:  journalctl --user -u ${CHAN_UNIT} -n 30${NC}"
+    echo -e "  ${DIM}anelkul:      tail -n 30 $INSTALL_DIR/store/channels.log${NC}"
+    echo -e "  ${DIM}Kesobb: ./scripts/start.sh, majd irj a botodnak${NC}"
   else
     ok "Telegram bridge fut"
     echo ""

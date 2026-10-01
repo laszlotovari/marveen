@@ -95,7 +95,9 @@ LATEST_PATH = os.path.join(STORE_DIR, "usage-latest.json")
 STATE_PATH = os.path.join(STORE_DIR, "usage-alert-state.json")
 ENV_PATH = os.path.join(REPO_ROOT, ".env")
 
-BUDAPEST = ZoneInfo("Europe/Budapest")
+# Display timezone for reset stamps. Defaults to the project's Europe/Budapest;
+# override with MARVEEN_TZ for an install whose owner lives elsewhere.
+LOCAL_TZ = ZoneInfo(os.environ.get("MARVEEN_TZ", "Europe/Budapest"))
 
 TOKEN_FIELDS = (
     "input_tokens",
@@ -118,7 +120,7 @@ def fmt_reset(resets_at, now_utc=None):
     except (ValueError, OSError, OverflowError, TypeError):
         return "unknown", "unknown"
     now_utc = now_utc or datetime.now(timezone.utc)
-    local_str = dt_utc.astimezone(BUDAPEST).strftime("%Y-%m-%d %H:%M %Z")
+    local_str = dt_utc.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M %Z")
     secs = (dt_utc - now_utc).total_seconds()
     if secs <= 0:
         rel = "now"
@@ -140,8 +142,12 @@ def _parse_iso_to_epoch(value):
     resets_at fields) into a unix epoch float. Returns None on failure."""
     if not isinstance(value, str):
         return None
+    # Python < 3.11's fromisoformat rejects a trailing 'Z' (Codex event
+    # timestamps use it, e.g. "2026-04-26T12:03:04.051Z"); normalise it so the
+    # parse works across interpreter versions, not just the host's 3.14.
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        dt = datetime.fromisoformat(value)
+        dt = datetime.fromisoformat(normalized)
     except ValueError:
         return None
     if dt.tzinfo is None:
@@ -262,6 +268,7 @@ def collect_codex():
         newest = max(files, key=os.path.getmtime)
 
         rate_limits = None
+        rate_limits_ts = None
         with open(newest, "r", encoding="utf-8", errors="ignore") as f:
             for line in f:
                 if '"rate_limits"' not in line:
@@ -273,6 +280,12 @@ def collect_codex():
                 rl = obj.get("payload", {}).get("rate_limits")
                 if rl:
                     rate_limits = rl  # keep the LAST match
+                    # ...and the event's own timestamp, so the summary can say
+                    # HOW OLD these numbers are (USAGE401DIAG910). The Codex
+                    # rollout is read from disk, not a live call: the newest
+                    # file can be months old, and a bare percentage then reads
+                    # as current when it is not.
+                    rate_limits_ts = obj.get("timestamp")
 
         if rate_limits is None:
             raise ValueError("no rate_limits entries in newest rollout file")
@@ -298,6 +311,17 @@ def collect_codex():
         result["plan_type"] = rate_limits.get("plan_type")
         result["windows"] = windows
         result["source_file"] = newest
+        # Freshness of the numbers (USAGE401DIAG910). snapshot_at is the ISO
+        # timestamp of the rate_limits event; snapshot_age_hours is relative to
+        # now. Both may be None if the event carried no timestamp -- the summary
+        # then says the freshness is unknown rather than showing the % alone.
+        result["snapshot_at"] = rate_limits_ts
+        result["snapshot_age_hours"] = None
+        if rate_limits_ts:
+            snap_epoch = _parse_iso_to_epoch(rate_limits_ts)
+            if snap_epoch is not None:
+                age_h = (datetime.now(timezone.utc).timestamp() - snap_epoch) / 3600.0
+                result["snapshot_age_hours"] = round(age_h, 1)
     except Exception as e:
         result["ok"] = False
         result["error"] = str(e)
@@ -389,7 +413,13 @@ def _collect_claude_authoritative():
     """Return (windows_dict, None, None) on success.
     On failure: (None, error_str, error_kind) where error_kind is one of:
       'no_token'  -- no credentials at all, never worth a cache/retry
-      'permanent' -- HTTP 403 (real scope/auth problem, not transient)
+      'permanent' -- HTTP 401/403: an expired/invalid token (401) or a real
+                     scope problem (403). NOT transient, and crucially NOT
+                     cache-servable: a retry from the last authoritative
+                     snapshot would hand back a stale number and hide the fact
+                     that the token needs refreshing (USAGE401DIAG910). 401 was
+                     previously misclassified as transient, so an expired token
+                     kept reporting the last good numbers as if current.
       'transient' -- 429 / 5xx / timeout / network error / unparseable
                      response -- safe to serve from cache if fresh enough
     """
@@ -409,7 +439,10 @@ def _collect_claude_authoritative():
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
     except urllib.error.HTTPError as e:
-        kind = "permanent" if e.code == 403 else "transient"
+        # 401 (expired/invalid token) and 403 (scope) are both no-retry: serving
+        # the stale authoritative cache would mask the auth problem. 401 needs a
+        # token refresh, 403 a scope fix -- the HTTP code below tells them apart.
+        kind = "permanent" if e.code in (401, 403) else "transient"
         return None, f"HTTP {e.code} ({token_source} token)", kind
     except Exception as e:
         return None, f"{type(e).__name__}: {e}", "transient"
@@ -589,7 +622,7 @@ def build_snapshot():
     now = datetime.now(timezone.utc)
     return {
         "generated_at": now.isoformat(),
-        "generated_at_local": now.astimezone(BUDAPEST).strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "generated_at_local": now.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S %Z"),
         "codex": collect_codex(),
         "claude": collect_claude(),
     }
@@ -622,6 +655,24 @@ def render_summary(snapshot):
     else:
         plan = codex.get("plan_type") or "?"
         windows = codex.get("windows", {})
+        # Freshness FIRST, so no % is read without its age (USAGE401DIAG910).
+        # The Codex numbers come from a rollout file on disk, which can be
+        # hours or months old; a bare percentage would read as current.
+        snap_at = codex.get("snapshot_at")
+        age_h = codex.get("snapshot_age_hours")
+        if snap_at:
+            local_str, _ = fmt_reset(_parse_iso_to_epoch(snap_at))
+            if isinstance(age_h, (int, float)):
+                if age_h >= 24:
+                    age_desc = f"{age_h / 24:.1f} days old"
+                else:
+                    age_desc = f"{age_h:.1f} h old"
+                stale = "  [STALE]" if age_h >= 24 else ""
+                lines.append(f"  snapshot: {local_str} ({age_desc}){stale}")
+            else:
+                lines.append(f"  snapshot: {local_str} (age unknown)")
+        else:
+            lines.append("  snapshot: freshness unknown -- the rollout event carried no timestamp; the numbers below may be stale")
         if not windows:
             lines.append("  no rate_limits data available")
         for label, w in windows.items():
