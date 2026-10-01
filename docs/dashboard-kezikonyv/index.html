@@ -258,7 +258,7 @@
   <div class="cover-eyebrow">Marveen telepítési és beállítási segédlet</div>
   <h1>Dashboard felhasználói kézikönyv</h1>
   <p class="lead">A webes Dashboard (<code>http://localhost:3420</code>) minden oldalának áttekintése: mire való, milyen funkciók érhetők el rajta, és, ahol releváns, mi történik pontosan, ha megnyomsz egy gombot.</p>
-  <div class="meta">2026-08-29 · Készíti: Archie · Ellenőrzi: Marween</div>
+  <div class="meta">2026-08-29, frissítve 2026-10-01 · Készíti: Archie · Ellenőrzi: Jarvis</div>
 </div>
 
 <div class="layout">
@@ -271,7 +271,6 @@
     <div class="toc-group-label">Csapat</div>
     <ul>
       <li><a href="#agents">Ügynökök</a></li>
-      <li><a href="#activity">Aktivitás</a></li>
       <li><a href="#messages">Üzenetek</a></li>
       <li><a href="#tasks">Ütemezések</a></li>
       <li><a href="#bgTasks">Háttér</a></li>
@@ -279,7 +278,6 @@
     <div class="toc-group-label">Tudás</div>
     <ul>
       <li><a href="#memories">Memória</a></li>
-      <li><a href="#naplo">Napló</a></li>
       <li><a href="#skills">Skillek</a></li>
       <li><a href="#research">Kutatás</a></li>
       <li><a href="#ideas">Ötletláda</a></li>
@@ -292,6 +290,7 @@
     <div class="toc-group-label">Rendszer</div>
     <ul>
       <li><a href="#status">Státusz</a></li>
+      <li><a href="#naplo">Napló</a></li>
       <li><a href="#updates">Frissítések</a></li>
       <li><a href="#settings">Beállítások</a></li>
       <li><a href="#vault">Vault</a></li>
@@ -314,12 +313,16 @@
     <section class="chapter" id="overview">
       <h2>Áttekintés <span class="page-key">overview</span></h2>
 
-      <p class="purpose">Egy képernyős pillantás a rendszer aktuális állapotára: hány ügynök fut éppen, hány feladat futott le ma, mennyi tudás (memória, skill) gyűlt össze, valamint a csapat felépítése és a legutóbbi tevékenységek. Ez a kezdőoldal, ide érkezel bejelentkezés után.</p>
+      <p class="purpose">Egy képernyős pillantás a rendszer aktuális állapotára: mennyit használtál el a Claude-előfizetésed keretéből, hány ügynök fut éppen, hány feladat futott le ma, mennyi tudás (memória, skill) gyűlt össze, valamint a csapat felépítése és a legutóbbi tevékenységek. Ez a kezdőoldal, ide érkezel bejelentkezés után.</p>
 
       <div class="screenshot">
-        <img src="kepek/01-attekintes.png" alt="Áttekintés oldal: statisztika-csempék és csapat-gráf">
+        <img src="kepek/01-attekintes.png" alt="Áttekintés oldal: előfizetési keret, statisztika-csempék és csapat-gráf">
         <div class="screenshot-caption">Áttekintés oldal, minta-adatokkal.</div>
       </div>
+
+      <h3>Előfizetési keret</h3>
+      <p>Az oldal tetején álló sáv a Claude-előfizetés felhasználtságát mutatja, ablakonként egy-egy csíkkal: <strong>5 órás</strong> és <strong>Heti</strong> keret, valamint, ha a fiókodnak van ilyen, a <strong>Fable (heti)</strong> keret. Minden csík mellett a felhasznált százalék és az, hogy mennyi idő múlva nullázódik a keret. A csík 60% felett figyelmeztető, 80% felett piros színre vált.</p>
+      <p>A sáv jobb felső sarka megmondja, milyen régi a mérés. Ha a mérés elavult, vagy a keret azóta már nullázódott, a számok megmaradnak, de a csík elszürkül, és egy sor jelzi, hogy a szám nem friss: egy órákkal korábbi zöld csík nem jelenti, hogy most is rendben vagy. Ha még nincs mérés (például friss telepítésen, az első ügynök-válasz előtt, vagy API-kulcsos fióknál, aminek nincs ilyen kerete), a sáv számok helyett egy mondatban mondja meg, miért üres.</p>
 
       <h3>Statisztika-csempék</h3>
       <table>
@@ -334,7 +337,7 @@
       <p>A főügynök és a beosztott ügynökök hierarchiája fastruktúraként, valós idejű státusszal (Fut / Áll) minden dobozon. Ugyanezt a nézetet mutatja az <a href="#agents">Ügynökök</a> oldal "Org chart" nézete is.</p>
 
       <h3>Aktivitás kártya</h3>
-      <p>A legutóbbi ügynök-események élő listája (pl. feladat-delegálás, memória-mentés), relatív időbélyeggel ("4p", "26p"). Ugyanaz az adatforrás, mint az önálló <a href="#activity">Aktivitás</a> oldalé, csak itt csak a legutóbbi néhány esemény látszik.</p>
+      <p>A legutóbbi ügynök-események listája relatív időbélyeggel ("4p", "26p"): a legfrissebb memória-mentések és az ügynökök egymásnak küldött üzenetei (feladat-delegálások), legfeljebb nyolc. Ez eseménynapló, arról szól, mi történt. Azt, hogy egy ügynök ebben a pillanatban mit csinál, az <a href="#agents">Ügynökök</a> oldal Aktivitás nézete mutatja.</p>
 
       <div class="no-consequence">Ezen az oldalon nincs szerkeszthető vagy kattintható vezérlő: kizárólag megjelenítés, nincs olyan gomb, ami adatot törölne, módosítana vagy külső hívást indítana.</div>
     </section>
@@ -343,7 +346,7 @@
     <section class="chapter" id="kanban">
       <h2>Kanban <span class="page-key">kanban</span></h2>
 
-      <p class="purpose">A csapat teljes feladatlistája egy táblán, státusz szerint oszlopokba rendezve. Ide kerül minden projekt-feladat: az orchestrator (Marween) kártyaként rögzíti, kioszt egy felelősnek, aki a kártyán állapotot vált és kommentál.</p>
+      <p class="purpose">A csapat teljes feladatlistája egy táblán, státusz szerint oszlopokba rendezve. Ide kerül minden projekt-feladat: a főügynök kártyaként rögzíti, kioszt egy felelősnek, aki a kártyán állapotot vált és kommentál.</p>
 
       <div class="screenshot">
         <img src="kepek/02-kanban.png" alt="Kanban tábla, öt oszloppal">
@@ -398,11 +401,17 @@
         <div class="no-consequence">A címkézés nem befolyásolja a munkafolyamatot: kizárólag csoportosít és szűrhetővé tesz, adatot nem töröl és nem indít semmilyen automatikus lépést.</div>
       </div>
 
+      <div class="feature-block">
+        <h4>Blokkolók (melyik kártyára vár)</h4>
+        <p>A kártya részletező nézetének "Blokkolja" szakaszában megadhatod, mely más kártyák lezárására vár ez a kártya: a legördülő listából egy nyitott kártyát választva azonnal hozzáadódik, a sor végi "×" gombbal levehető. Ha a kártyára más kártyák várnak, azok egy külön "Erre a kártyára várnak" listában látszanak; ez csak olvasható, egy kapcsolatot mindig annál a kártyánál veszel le, amelyik vár. A táblán a blokkolt kártya alján "⛔ blokkolva" jelvény áll (több blokkolónál a számukkal), amíg legalább egy blokkolója nincs Kész állapotban. A már lezárt blokkoló a listában megmarad, áthúzva és halványan, így egy pillantásból látszik, vár-e még a kártya valamire.</p>
+        <div class="no-consequence">A blokkoló csak jelzés: a kártyát ettől ugyanúgy lehet mozgatni és lezárni, a rendszer semmit nem tilt és nem indít miatta. Körbeérő függést (A vár B-re, B vár A-ra) a rendszer nem enged felvenni, és hibaüzenetben megmondja, miért.</div>
+      </div>
+
       <h3>Csoportosítás és szűrés</h3>
-      <p>A tábla feletti vezérlősorban: <strong>Projekt</strong> szűrő (legördülő), <strong>Csoportosítás</strong> (Nincs / Felelős szerint / Prioritás szerint, az utóbbi kettő vízszintes sávokra, ún. swimlane-ekre bontja a táblát), <strong>Oszlopok</strong> chipek (mely oszlopok legyenek láthatók), <strong>Felelős</strong> szűrő, és a címke gyors-szűrők. A választásaid a böngésződben megmaradnak, nem kell minden megnyitáskor újra beállítani.</p>
+      <p>A tábla feletti vezérlősorban: <strong>Projekt</strong> szűrő (legördülő), <strong>Csoportosítás</strong> (Nincs / Felelős szerint / Prioritás szerint, az utóbbi kettő vízszintes sávokra, ún. swimlane-ekre bontja a táblát), <strong>Oszlopok</strong> chipek (mely oszlopok legyenek láthatók), <strong>Felelős</strong> szűrő, a <strong>"Rám vár"</strong> gomb (egy kattintással csak azokat a kártyákat mutatja, amelyek felelőse a rendszer gazdája, vagyis te; újra kattintva kikapcsol), és a címke gyors-szűrők. A választásaid a böngésződben megmaradnak, nem kell minden megnyitáskor újra beállítani.</p>
 
       <h3>Beakadt és öregedő kártyák</h3>
-      <p>Minden nem lezárt kártyán automatikusan megjelenik, ha régóta nem mozdult: bal oldali színes csík (sárga = 1 napja, narancs = 3 napja, piros villogó = 1 hete változatlan) és egy homokóra-jelvény ("⏳ 4d") a jobb felső sarokban.</p>
+      <p>Minden nem lezárt kártyán automatikusan megjelenik, ha régóta nem mozdult: bal oldali színes csík (sárga = 1 napja, narancs = 3 napja, piros villogó = 1 hete nem váltott státuszt) és egy homokóra-jelvény ("⏳ 4d") a jobb felső sarokban. Az idő a kártya utolsó <em>státuszváltásától</em> számít, nem az utolsó módosítástól: egy új megjegyzés vagy leírás-javítás nem "fiatalítja meg" a kártyát, csak az, ha ténylegesen másik oszlopba kerül. A jelvény fölé állva a pontos időpont látszik.</p>
       <div class="no-consequence">Ez kizárólag vizuális figyelmeztetés, a rendszer emiatt semmit nem tesz automatikusan a kártyával, csak felhívja rá a figyelmet.</div>
 
       <h3>Automatikus audit (4 óránként)</h3>
@@ -496,14 +505,40 @@
         <div class="screenshot-caption">Ügynökök oldal, kártyás nézetben.</div>
       </div>
 
-      <h3>Két nézet</h3>
+      <h3>Három nézet</h3>
+      <p>A fejléc nézetváltójával: <strong>Kártyák</strong>, <strong>Aktivitás</strong> és <strong>Org chart</strong>. Az első kettő ugyanaz a kártyarács, csak a kártyák alsó része mást mutat; az Org chart külön elrendezés. A választott nézet megmarad, ha közben más oldalra lépsz, egészen az oldal újratöltéséig.</p>
       <div class="feature-block">
         <h4>Kártyák</h4>
-        <p>Minden ügynök egy kártya: név, státusz (Fut/Áll), avatar. A rácsban itt van az "Új ügynök" kártya is.</p>
+        <p>Minden ügynök egy kártya: avatar, név, rövid szerep-leírás, a beállított modell, a futási állapot (Fut / Leállva) és a csatorna-kapcsolat (Online / Offline). Ha a kontextus-figyelés mérni tudja, egy százalékos jelvény mutatja, mennyire telt meg az ügynök munkamenetének kontextusa (90% felett figyelmeztető, 97% felett piros színnel; ugyanez a szám alapján lép közbe a <a href="#agents-kontextus">kontextus-figyelő</a>). Ha a kontextus-figyelő éppen beavatkozik, egy rövid fázis-jelvény is megjelenik ("handoff", "restarting", vagy "cooldown" a hátralévő percekkel), fölé állva egy mondat elmagyarázza. A "Terminal" gomb zöldre vált, amíg az ügynök éppen dolgozik. Kártyára kattintva a részletező ablak nyílik. A rácsban itt van az "Új ügynök" kártya is.</p>
+      </div>
+      <div class="feature-block" id="agents-aktivitas">
+        <h4>Aktivitás</h4>
+        <p>Élő állapotkép minden ügynökről, 3 másodpercenként frissítve: a kártya alsó része a modell és a státuszok helyett az ügynök pillanatnyi állapotát és a munkamenete utolsó néhány sorát mutatja. Ez korábban önálló "Aktivitás" menüpont volt, mára ide lett összevonva. Ne keverd össze az <a href="#overview">Áttekintés</a> Aktivitás-kártyájával: az eseménynapló (mi történt), ez itt a jelenlegi állapot.</p>
+        <div class="screenshot">
+          <img src="kepek/04b-ugynokok-aktivitas.png" alt="Ügynökök oldal, Aktivitás nézetben, élő állapotjelvényekkel">
+          <div class="screenshot-caption">Ügynökök oldal, Aktivitás nézetben, minta-ügynökökkel.</div>
+        </div>
+        <table>
+          <tr><th>Jelvény</th><th>Jelentés</th></tr>
+          <tr><td>dolgozik</td><td>Az ügynök éppen aktívan feldolgoz valamit (a jelvényen egy lüktető pont is látszik).</td></tr>
+          <tr><td>várakozik</td><td>Fut, de éppen nem csinál semmit.</td></tr>
+          <tr><td>ismeretlen</td><td>A rendszer nem tudta megállapítani az állapotot a munkamenet tartalmából.</td></tr>
+          <tr><td>hiba</td><td>Hiba látszik az ügynök munkamenetén.</td></tr>
+          <tr><td>leállt</td><td>Az ügynök munkamenete nem fut.</td></tr>
+        </table>
+        <p>Ha egy ügynök nem a szokásos, önállóan dolgozó módban van (például minden lépésnél megerősítést kérő módban ragadt), egy külön jelvény hívja fel erre a figyelmet: ilyenkor az ügynök tétlennek látszhat, miközben valójában jóváhagyásra vár.</p>
+        <p>Ebben a nézetben egy <strong>futó</strong> ügynök kártyájára kattintva nem a részletező ablak, hanem egy élő terminál-ablak nyílik, ami az ügynök tényleges munkamenetét mutatja, valós időben. Leállított ügynök kártyája ebben a nézetben nem kattintható.</p>
+        <div class="installer-note">
+          <span class="installer-label">Telepítőnek</span>
+          A terminál-ablak fejlécében egy "Input" kapcsoló dönti el, hogy a billentyűzeted el is jut-e az ügynök munkamenetéhez, vagy csak megfigyelheted. Alapállapotban ki van kapcsolva (csak-olvasható nézet).
+        </div>
+        <div class="consequence"><strong>Következmény:</strong> ha bekapcsolod az Input kapcsolót, onnantól amit begépelsz, az valóban eljut az ügynök élő munkamenetébe, mintha te ülnél a géphez: félbeszakíthatsz egy futó műveletet vagy új parancsot adhatsz ki. A be- és kikapcsolás is naplózásra kerül.</div>
+        <div class="no-consequence">Az állapotfigyelés önmagában nem avatkozik be semmibe, csak megjeleníti, mi történik.</div>
       </div>
       <div class="feature-block">
         <h4>Org chart</h4>
-        <p>Ugyanaz a hierarchikus fastruktúra, amit az <a href="#overview">Áttekintés</a> Csapat kártyája is mutat: a főügynök és a beosztott ügynökök jelentési viszonyai. Ez korábban önálló "Csapat" menüpont volt, mára ide lett összevonva.</p>
+        <p>Ugyanaz a hierarchikus fastruktúra, amit az <a href="#overview">Áttekintés</a> Csapat kártyája is mutat: a főügynök és a beosztott ügynökök jelentési viszonyai, ügynökönként a futási állapottal. Az éppen dolgozó ügynök doboza kiemelt kerettel látszik. Ez korábban önálló "Csapat" menüpont volt, mára ide lett összevonva. Egy beosztott ügynök dobozát egérrel megfogva és egy másik ügynökre húzva átrendezheted, kinek jelentsen.</p>
+        <div class="consequence"><strong>Következmény:</strong> az áthúzás megerősítés nélkül, azonnal elmentődik. A jelentési viszony nem csak rajz: az ügynökök ebből (és a delegálási listából) döntik el, kitől fogadnak el üzenetet megbízható csapattársként. Olyan áthúzást, amitől körbeérne a hierarchia (egy ügynök a saját beosztottja alá kerülne), a rendszer nem fogad el.</div>
       </div>
 
       <h3>Új ügynök létrehozása</h3>
@@ -511,7 +546,20 @@
       <div class="consequence"><strong>Következmény:</strong> a létrehozás azonnal, véglegesen létrehozza az új ügynök könyvtárát a rendszeren. Ha a személyiség-generálás bármiért sikertelen, a rendszer egy általános sablonra esik vissza, de a folyamatot ekkor is sikeresnek jelzi, tehát érdemes az új ügynök első válaszait ellenőrizni, nem csak a "kész" üzenetet elhinni.</div>
 
       <h3>Ügynök részletei</h3>
-      <p>Egy kártyára kattintva nyílik a részletező ablak, fülekre bontva: alapadatok, csatorna (Telegram/Slack párosítás), skillek, és a csapat-viszonyok (kinek a beosztottja).</p>
+      <p>Egy kártyára kattintva (a Kártyák nézetben) nyílik a részletező ablak, öt fülre bontva: Áttekintés (alapadatok), Beállítások (modell, újraindítási szabályok, kontextus-figyelő), Csatorna (Telegram/Slack párosítás), Skillek, és Csapat (kinek a beosztottja).</p>
+
+      <div class="feature-block">
+        <h4>Modell kiválasztása (Beállítások fül)</h4>
+        <p>A legördülő lista csoportokban kínálja a választható modelleket: Claude (felhő), és ha be vannak állítva, a DeepSeek, MiniMax, OpenRouter, Ollama és az <strong>Egyéni provider</strong> csoport. Egyéni providernél a listában a providert választod ki, a modell azonosítóját pedig egy alatta megjelenő mezőbe írod be; magát a providert a <a href="#settings">Beállítások</a> oldal Provider-ok fülén veszed fel.</p>
+        <p>A Claude-modellek közül csak az választható ki, amit a gépre telepített Claude Code program el is tud indítani: amelyikhez újabb program kell, az szürkén, a szükséges verzióval jelölve jelenik meg. Ha a telepített verziót a rendszer nem tudja megmérni, a lista nem szűr, és egy sor figyelmeztet, hogy egy régebbi programon nem minden modell indul el. Egy ügynök éppen használt modellje sosem szürkül ki, így a mentés nem írja át észrevétlenül.</p>
+        <div class="consequence"><strong>Következmény:</strong> beosztott ügynöknél a Mentés azonnal újraindítja az ügynököt az új modellel, a folyamatban lévő munkája megszakad. A főügynök modellje és identitás-fájljai innen nem módosíthatók.</div>
+      </div>
+
+      <div class="feature-block" id="agents-kontextus">
+        <h4>Kontextus-limit alapú újraindítás (Beállítások fül)</h4>
+        <p>Egy hosszan futó ügynök munkamenete idővel megtelik (a "kontextus" az, amit az ügynök a beszélgetésből egyszerre fejben tud tartani). Két védelmi szint van. A <strong>saturation net</strong> mindig aktív és nem kapcsolható ki: ha a kontextus eléri a 100%-ot, az ügynök automatikusan újraindul. A <strong>Proaktív limit-figyelő</strong> bekapcsolható: ha a kontextus eléri a beállított küszöböt (alapból 90%), az ügynök előbb egy átadó jegyzetet (HANDOFF.md) ír a félbehagyott munkáról, majd friss kontextussal folytatja. Beállítható még a token-limit, a kényszer-újraindítás küszöbe (alapból 97%, nem lehet kisebb a handoff-küszöbnél), a két beavatkozás közti hűtési idő (alapból 15 perc), és a "Haladó beállítások" alatt az, hogy meddig várjon a rendszer a jegyzetre (alapból 20 perc). Az ablak alján az aktuális állapot és a kontextus telítettsége látszik.</p>
+        <div class="consequence"><strong>Következmény:</strong> bekapcsolt figyelőnél az ügynök a küszöb elérésekor magától újraindul, a beszélgetés addigi részét csak az átadó jegyzeten keresztül viszi tovább. Ha a jegyzet a megadott időn belül nem készül el, kényszer-újraindítás következik, jegyzet nélkül. A beállítás a Mentés gombbal lép életbe.</div>
+      </div>
 
       <div class="feature-block">
         <h4>Indítás / Leállítás</h4>
@@ -542,37 +590,6 @@
       <div class="consequence"><strong>Következmény:</strong> az elemzés önmagában nem változtat semmin, csak javaslatot ad. Ha van módosítást javasolt ügynök, és ezt megerősíted, a rendszer kanban-kártyát hoz létre a változtatáshoz, de magát a modellt nem írja át automatikusan.</div>
 
       <div class="no-consequence">Az ügynökök egymás közötti üzenetváltásának megtekintéséhez lásd az <a href="#messages">Üzenetek</a> oldalt.</div>
-    </section>
-    <section class="chapter" id="activity">
-      <h2>Aktivitás <span class="page-key">activity</span></h2>
-
-      <p class="purpose">Élő, valós idejű állapotkép minden futó ügynökről: éppen dolgozik, tétlen, hibára futott, vagy le van állítva. Az oldal 3 másodpercenként frissül magától, amíg nyitva van. Ne keverd össze az <a href="#overview">Áttekintés</a> Aktivitás-kártyájával: az egy eseménynapló (mit csinált egy ügynök), ez itt a jelenlegi állapot.</p>
-
-      <div class="screenshot">
-        <img src="kepek/05-aktivitas.png" alt="Aktivitás oldal, élő állapotjelvényekkel">
-        <div class="screenshot-caption">Aktivitás oldal, minta-ügynökökkel.</div>
-      </div>
-
-      <h3>Állapotjelvények</h3>
-      <table>
-        <tr><th>Jelvény</th><th>Jelentés</th></tr>
-        <tr><td>Dolgozik</td><td>Az ügynök éppen aktívan feldolgoz valamit.</td></tr>
-        <tr><td>Tétlen</td><td>Fut, de éppen nem csinál semmit.</td></tr>
-        <tr><td>Ismeretlen</td><td>A rendszer nem tudta megállapítani az állapotot a session tartalmából.</td></tr>
-        <tr><td>Hiba</td><td>Hiba látszik az ügynök session-jén.</td></tr>
-        <tr><td>Leállítva</td><td>Az ügynök session-je nem fut.</td></tr>
-      </table>
-      <p>Ha egy ügynök nem a szokásos, önállóan dolgozó módban van (pl. minden lépésnél megerősítést kérő módban ragadt), egy külön jelvény hívja fel erre a figyelmet.</p>
-
-      <h3>Kártya megnyitása: élő terminál</h3>
-      <p>Egy futó ügynök kártyájára kattintva egy élő terminál-ablak nyílik, ami az ügynök tényleges munkamenetét mutatja, valós időben.</p>
-      <div class="installer-note">
-        <span class="installer-label">Telepítőnek</span>
-        A terminál-ablak fejlécében egy "Input" kapcsoló dönti el, hogy a billentyűzeted el is jut-e az ügynök munkamenetéhez, vagy csak megfigyelheted. Alapállapotban ki van kapcsolva (csak-olvasható nézet).
-      </div>
-      <div class="consequence"><strong>Következmény:</strong> ha bekapcsolod az Input kapcsolót, onnantól amit begépelsz, az valóban eljut az ügynök élő session-jébe, mintha te ülnél a géphez, félbeszakíthatsz egy futó műveletet vagy új parancsot adhatsz ki. A be- és kikapcsolás is naplózásra kerül.</div>
-
-      <div class="no-consequence">Az állapotfigyelés önmagában nem avatkozik be semmibe, csak megjeleníti, mi történik. Leállított ügynökre kattintva nem nyílik terminál (a kártya nem kattintható).</div>
     </section>
     <section class="chapter" id="messages">
       <h2>Üzenetek <span class="page-key">messages</span></h2>
@@ -690,47 +707,25 @@
         <tr><td>Cold</td><td>Hosszú távú tanulságok, korábbi döntések, archívum.</td></tr>
         <tr><td>Shared</td><td>Más ügynököknek is releváns információ.</td></tr>
       </table>
-      <p>Ezen felül két további fül: <strong>Gráf</strong>, ami vizuálisan mutatja az emlékek kulcsszó-kapcsolatait az ügynökök között, és <strong>Napló</strong>, ami a napi összefoglalókat listázza (részletesebben lásd a <a href="#naplo">Napló</a> fejezetet).</p>
+      <p>Ezen felül két további fül: <strong>Gráf</strong>, ami vizuálisan mutatja az emlékek kulcsszó-kapcsolatait az ügynökök között, és <strong>Napló</strong>, ami az ügynökök napi összefoglalóit listázza. Ez a fül nem azonos a Rendszer csoport <a href="#naplo">Napló</a> menüpontjával: az a rendszer eseménynaplója (beállítás-változások, fájl-események), ez itt az ügynökök saját, napi munkanaplója.</p>
 
       <h3>Keresés és szűrés</h3>
       <p>A keresőmező kétféle módban működik: <strong>Hibrid</strong> (kulcsszó és jelentés szerint egyszerre keres, akkor is talál, ha nem pontosan azt a szót írod be, ami az emlékben szerepel) és <strong>Kulcsszavas</strong> (klasszikus, pontos szóegyezés). Ügynök szerint is szűrhetsz.</p>
+      <p>A keresés szándékosan engedékeny: ha egyetlen emlék sem illeszkedik úgy, ahogy kerested, a rendszer elhagyja a nem talált szavakat, és azt mutatja, amit a maradék szavak hoznak. Ilyenkor a lista fölött egy kiemelt doboz jelzi: <strong>"Ez mentett közelítés, nem találat."</strong> Ha ezt látod, a lista nem bizonyítja, hogy van emlék arról, amit kerestél, csak a hozzá legközelebb állókat mutatja. Valódi találatnál a doboz nem jelenik meg.</p>
 
       <h3>Új emlék</h3>
       <p>Az "Új emlék" gombbal kézzel is felvehetsz egy bejegyzést egy ügynökhöz, réteg és kulcsszavak megadásával.</p>
       <div class="no-consequence">Ez csak egy új bejegyzést hoz létre, meglévő emléket nem módosít vagy töröl.</div>
 
+      <h3>Egy emlék szerkesztése és törlése</h3>
+      <p>Egy emlékre kattintva kinyílik a teljes szövege, alatta a Szerkesztés és a Törlés gombbal. A Szerkesztés ugyanazt az űrlapot nyitja meg, mint az új emlék, kitöltve.</p>
+      <div class="consequence"><strong>Következmény:</strong> a Szerkesztés mentése felülírja az emlék szövegét, rétegét és kulcsszavait, a régi változat nem marad meg. A Törlés megerősítés után véglegesen törli az emléket, nincs kuka és nincs visszaállítás: az ügynökök onnantól nem találják meg a keresésben.</div>
+
       <h3>Költöztetés (import)</h3>
       <p>Korábbi beszélgetések vagy jegyzetek fájlból tömegesen betölthetők egy kiválasztott ügynök memóriájába.</p>
       <div class="consequence"><strong>Következmény:</strong> a feltöltött fájl(ok) tartalmából a rendszer emlék-bejegyzéseket készít és menti el, ez az ügynök tudásbázisát bővíti, nem próba-futás.</div>
 
-      <div class="note">A memóriáknak nincs kézi törlés gombja a felületen. A rendszer magától "halványítja" a régen nem használt emlékeket (nem jelennek meg olyan előkelő helyen a keresésben), de nem törli őket automatikusan sem, mindig visszakereshetők maradnak.</div>
-    </section>
-    <section class="chapter" id="naplo">
-      <h2>Napló <span class="page-key">naplo</span></h2>
-
-      <p class="purpose">Egységes, csak-olvasható eseménynapló: mi történt a rendszerben (beállítás-változás, ötlet állapotváltás, fájl-esemény), ki és mikor tette. Auditáláshoz és nyomkövetéshez való, nem szerkeszthető felület.</p>
-
-      <div class="screenshot">
-        <img src="kepek/10-naplo.png" alt="Napló oldal, forrás-fülekkel és eseménylistával">
-        <div class="screenshot-caption">Napló oldal, minta-bejegyzésekkel.</div>
-      </div>
-
-      <h3>Öt forrás-fül</h3>
-      <table>
-        <tr><th>Fül</th><th>Mit mutat</th></tr>
-        <tr><td>Összes</td><td>Minden forrás egy közös, időrendi listában.</td></tr>
-        <tr><td>Eseménynapló</td><td>Az ügynökök és a rendszer általános eseményei.</td></tr>
-        <tr><td>Konfig</td><td>Beállítás-változások (pl. melyik kulcs milyen értékről milyenre változott, ki és mikor). A titkos értékek (pl. API kulcsok) sosem kerülnek be, csak az a tény, hogy változott valami.</td></tr>
-        <tr><td>Ötletek</td><td>Az Ötletláda állapotváltásai (pl. "új" -> "kanbanra emelve", vagy visszafordítás).</td></tr>
-        <tr><td>Tárolt fájlok</td><td>A rendszer adattárolójában (nem a saját rendszerfájlokban) létrejött fájl-események, ha megállapítható, a létrehozó ügynök nevével.</td></tr>
-      </table>
-
-      <h3>Szűrők</h3>
-      <p><strong>Dátumtartomány</strong> ("Ettől"/"Eddig", mindkettő opcionális), és <strong>szabad szöveges keresés</strong>, ami a kulcs, útvonal, megjegyzés és a kezdeményező mezőkben egyszerre keres.</p>
-
-      <div class="no-consequence">A fülek, a szűrők és a "Frissítés" gomb kizárólag a listát szűkítik vagy töltik újra, semmit nem módosítanak.</div>
-
-      <div class="note">Az oldal teljesen csak-olvasható: bejegyzés innen nem szerkeszthető és nem törölhető kézzel. A bejegyzések egy automatikus, napi takarítás során törlődnek, ha egy beállított napszámnál (alapértelmezés: 90 nap) régebbiek, ez a <a href="#settings">Beállítások</a> oldalon módosítható.</div>
+      <div class="note">A rendszer magától "halványítja" a régen nem használt emlékeket (nem jelennek meg olyan előkelő helyen a keresésben), de nem törli őket automatikusan, mindig visszakereshetők maradnak. Törölni csak kézzel, a fenti Törlés gombbal lehet.</div>
     </section>
     <section class="chapter" id="skills">
       <h2>Skillek <span class="page-key">skills</span></h2>
@@ -791,28 +786,44 @@
       <table>
         <tr><th>Állapot</th><th>Jelentés</th></tr>
         <tr><td>Új</td><td>Beérkezett, még nem értékelt.</td></tr>
-        <tr><td>Értékelt</td><td>Átnézve, de még nincs belőle kanban-kártya.</td></tr>
-        <tr><td>Kanbanon</td><td>Promótálva, már fut belőle feladat.</td></tr>
+        <tr><td>Átnézve</td><td>Értékelve, de még nincs belőle kanban-kártya.</td></tr>
+        <tr><td>Kanbanban</td><td>Promótálva, már fut belőle feladat.</td></tr>
         <tr><td>Elutasítva</td><td>Nem folytatódik tovább, de megmarad visszakereshetőnek.</td></tr>
       </table>
-      <p>A lista alapból az "Aktív" (Új + Értékelt) nézetet mutatja; a fülekkel átválthatsz a Kanbanon lévőkre vagy az elutasítottakra.</p>
+      <p>A lista alapból az "Aktív (új + átnézett)" nézetet mutatja; a fejléc állapot-szűrőjével átválthatsz egy-egy állapotra (például a Kanbanban lévőkre vagy az elutasítottakra), a kategória-szűrővel pedig egy kategóriára. Az oldal tetején egy-egy csempe mutatja az állapotonkénti darabszámot.</p>
+
+      <h3>Munka és Személyes terület</h3>
+      <p>Minden ötlet két terület egyikébe tartozik: <strong>Munka</strong> vagy <strong>Személyes</strong>. A fejléc Munka / Személyes / Mind kapcsolója szűri a listát (alapból Munka), és a választás a böngésződben megmarad. Új ötletnél a területet az űrlapon adod meg; egy meglévő ötlet a részletes nézetben az "Áthelyezés ide: ..." gombbal tehető át a másik területre, ami megerősítés nélkül, azonnal megtörténik.</p>
+
+      <h3>Fájlból ötlet: Feltöltés</h3>
+      <p>A fejléc "Feltöltés" gombjával egy vagy több fájlt választhatsz ki (PDF, kép, szöveg, Markdown, CSV, Word, Excel; fájlonként legfeljebb 20 MB). Minden fájlból külön ötlet lesz, a fájl nevével címként, "Egyéb" kategóriában, az éppen kiválasztott területen (a "Mind" nézetben a Munka területen), és a fájl csatolmányként hozzá is kerül. Ha a fájl PDF és a szövege kiolvasható, a szöveg eleje az ötlet leírásába kerül. A végén egy üzenet összesíti, hány fájl sikerült és melyik nem.</p>
+
+      <h3>Csatolmányok</h3>
+      <p>Az ötlet részletes nézetének "Csatolmányok" dobozában a "Fájl hozzáadása" gombbal további fájlok tölthetők fel egy meglévő ötlethez, a feltöltöttek a "Letöltés" gombbal menthetők le. A PDF-eknél egy "szöveg" jelölés mutatja, ha a rendszer ki tudta olvasni a tartalmukat.</p>
+      <div class="consequence"><strong>Következmény:</strong> egy csatolmány "Töröl" gombja megerősítés után véglegesen törli a fájlt a gépről. Ha magát az ötletet törlik, a hozzá tartozó összes csatolmány is törlődik.</div>
 
       <h3>Impact×Effort pontozás</h3>
       <p>Az ötlet részletes nézetében 1-5 skálán megadható, mekkora értéket teremtene (Impact) és mennyi munkát igényelne (Effort). A kettő különbsége a pontszám, ami a kártyán <code>I{szám}·E{szám}</code> formában jelenik meg. Ha egy ötlet pontszáma elég magas, bekerülhet a rendszer napi top-3 javaslatába a nyitott feladatok mellé.</p>
 
       <div class="feature-block">
         <h4>Elutasítás</h4>
-        <p>Az ötlet mellett a gomb, azonnal, megerősítés nélkül vált állapotot.</p>
-        <div class="consequence"><strong>Következmény:</strong> az ötlet Elutasítva állapotba kerül, kikerül az aktív listából, de nem vész el. Az "Újranyitás" gombbal bármikor visszahozható Új állapotba.</div>
+        <p>Az ötlet mellett az "Elutasít" gomb, azonnal, megerősítés nélkül vált állapotot.</p>
+        <div class="consequence"><strong>Következmény:</strong> az ötlet Elutasítva állapotba kerül, kikerül az aktív listából, de nem vész el. Az "Újra" gombbal bármikor visszahozható.</div>
       </div>
 
       <div class="feature-block">
-        <h4>AI-bontás / Promótálás kanban-kártyává</h4>
-        <p>Ha az ötlet elég konkrét, közvetlenül kártyává alakítható. Ha összetettebb, a "Lebont" AI-segítséggel alfeladatokra bontja, amit jóváhagyás előtt szerkeszthetsz, és megadhatsz hozzá egy siker-kritériumot is ("mikor tekintjük késznek").</p>
+        <h4>Törlés</h4>
+        <p>Az ötlet sorában a piros "Töröl" gomb, megerősítés után. (A megerősítő kérdés "kártyát" említ, de az ötletet törli.)</p>
+        <div class="consequence"><strong>Következmény:</strong> az ötlet és minden csatolmánya véglegesen törlődik, nincs kuka és nincs visszaállítás. Ha csak félre akarod tenni, az Elutasítás a visszafordítható út.</div>
+      </div>
+
+      <div class="feature-block">
+        <h4>Kanbanra (AI): bontás kanban-kártyákká</h4>
+        <p>Az ötlet sorában a "Kanbanra (AI)" gomb (nyitott, még nem elutasított ötletnél) AI-segítséggel alfeladatokra bontja az ötletet, felelős-javaslattal. A javaslatot jóváhagyás előtt szerkesztheted, és megadhatsz hozzá egy siker-kritériumot is ("mikor tekintjük késznek"). Az alfeladatok legnagyobb száma a <a href="#settings">Beállítások</a> Ötletláda fülén állítható.</p>
         <div class="consequence"><strong>Következmény:</strong> a jóváhagyás valódi kanban-kártyát (bontás esetén kártyákat) hoz létre a táblán, ez a lépés indítja el ténylegesen a munkát.</div>
       </div>
 
-      <div class="note">Ha egy promótált ötlet kanban-kártyáját később törlik vagy archiválják, az ötlet automatikusan visszakerül Értékelt állapotba, nem vész el nyomtalanul.</div>
+      <div class="note">Ha egy promótált ötlet kanban-kártyáját később törlik vagy archiválják, az ötlet automatikusan visszakerül Átnézve állapotba, nem vész el nyomtalanul.</div>
 
       <div class="no-consequence">A komment-szál és a státusz-előzmény megtekintése csak megjelenít, semmit nem módosít.</div>
 
@@ -901,6 +912,33 @@
 
       <div class="no-consequence">Az oldal kizárólag megjelenít, külső, nyilvános státusz-forrásból olvas. A Frissítés gomb csak újralekérdezi, semmit nem módosít.</div>
     </section>
+    <section class="chapter" id="naplo">
+      <h2>Napló <span class="page-key">naplo</span></h2>
+
+      <p class="purpose">Egységes, csak-olvasható eseménynapló: mi történt a rendszerben (beállítás-változás, ötlet állapotváltás, fájl-esemény), ki és mikor tette. Auditáláshoz és nyomkövetéshez való, nem szerkeszthető felület.</p>
+
+      <div class="screenshot">
+        <img src="kepek/10-naplo.png" alt="Napló oldal, forrás-fülekkel és eseménylistával">
+        <div class="screenshot-caption">Napló oldal, minta-bejegyzésekkel.</div>
+      </div>
+
+      <h3>Öt forrás-fül</h3>
+      <table>
+        <tr><th>Fül</th><th>Mit mutat</th></tr>
+        <tr><td>Összes</td><td>Minden forrás egy közös, időrendi listában.</td></tr>
+        <tr><td>Eseménynapló</td><td>Az ügynökök és a rendszer általános eseményei.</td></tr>
+        <tr><td>Konfig</td><td>Beállítás-változások (pl. melyik kulcs milyen értékről milyenre változott, ki és mikor). A titkos értékek (pl. API kulcsok) sosem kerülnek be, csak az a tény, hogy változott valami.</td></tr>
+        <tr><td>Ötletek</td><td>Az Ötletláda állapotváltásai (pl. "új" -> "kanbanra emelve", vagy visszafordítás).</td></tr>
+        <tr><td>Tárolt fájlok</td><td>A rendszer adattárolójában (nem a saját rendszerfájlokban) létrejött fájl-események, ha megállapítható, a létrehozó ügynök nevével.</td></tr>
+      </table>
+
+      <h3>Szűrők</h3>
+      <p><strong>Dátumtartomány</strong> ("Ettől"/"Eddig", mindkettő opcionális), és <strong>szabad szöveges keresés</strong>, ami a kulcs, útvonal, megjegyzés és a kezdeményező mezőkben egyszerre keres.</p>
+
+      <div class="no-consequence">A fülek, a szűrők és a "Frissítés" gomb kizárólag a listát szűkítik vagy töltik újra, semmit nem módosítanak.</div>
+
+      <div class="note">Az oldal teljesen csak-olvasható: bejegyzés innen nem szerkeszthető és nem törölhető kézzel. A bejegyzések egy automatikus, napi takarítás során törlődnek, ha egy beállított napszámnál (alapértelmezés: 90 nap) régebbiek, ez a <a href="#settings">Beállítások</a> oldalon módosítható.</div>
+    </section>
     <section class="chapter" id="updates">
       <h2>Frissítések <span class="page-key">updates</span></h2>
 
@@ -925,6 +963,12 @@
         <div class="consequence"><strong>Következmény:</strong> ez egy VALÓDI, éles frissítés: lehúzza az új kódot és újraindítja az érintett szolgáltatást. Ha a rendszeren mentetlen, helyi módosítás van, a frissítés nem indul el automatikusan, hanem rákérdez, hogy azokat félretegye-e (a módosítások ilyenkor nem vesznek el, csak félreteszi őket, hogy ne ütközzenek az új kóddal). A folyamat végén a rendszer megmutatja, hogy sikeres volt-e, vagy hiba esetén visszaállt-e az előző állapotra.</div>
       </div>
 
+      <div class="feature-block">
+        <h4>Claude Code CLI frissítése</h4>
+        <p>Külön doboz mutatja a gépre telepített Claude Code program verzióját (ezen futnak az ügynökök) és az elérhető legújabbat. Ha van újabb, egy "CLI frissítése erre: ..." gomb jelenik meg, mellette a kézzel futtatható parancs is. Régebbi, AVX utasításkészlet nélküli processzoron a legfrissebb Claude Code nem indul el, ezért ott a rendszer csak a kipróbált, ezen a gépen is működő verziót ajánlja fel, és ezt egy sor meg is mondja. Ha minden naprakész, a doboz ezt jelzi.</p>
+        <div class="consequence"><strong>Következmény:</strong> a frissítés csak a gombra, megerősítés után indul, magától soha. A program a gépen ténylegesen lecserélődik, a végén egy próbaindítás ellenőrzi, hogy az új verzió elindul. A már futó ügynökök a régi verzión maradnak a következő újraindításukig, az új verziót csak akkor kapják meg.</div>
+      </div>
+
       <div class="installer-note">
         <span class="installer-label">Telepítőnek</span>
         A frissítés csak a hivatalos kiadási ágon (<code>main</code>), tiszta munkakönyvtárban fut le biztonságosan. Fejlesztői ágon, vagy nem szabványos telepítésen a rendszer elutasítja az automatikus frissítést, ilyenkor kézi beavatkozás kell.
@@ -941,7 +985,34 @@
       </div>
 
       <h3>Fülek (modulok)</h3>
-      <p>A beállítások funkció szerinti fülekbe vannak csoportosítva (pl. Kanban, Rendszer, Heartbeat, Ötletláda), plusz két mindig jelen lévő speciális fül: <strong>Biztonság</strong> (itt van a böngészős bejelentkezés, felhasználónév + jelszó beállítása) és <strong>Autonómia</strong> (itt állítható kategóriánként, mennyire dönthet önállóan egy ügynök, lásd a <a href="#approvals">Jóváhagyások</a> fejezetet).</p>
+      <p>A beállítások funkció szerinti fülekbe vannak csoportosítva (pl. Kanban, Rendszer, Heartbeat, Ötletláda), plusz négy mindig jelen lévő speciális fül: <strong>Biztonság</strong> (itt van a böngészős bejelentkezés, felhasználónév + jelszó beállítása), <strong>Autonómia</strong> (itt állítható kategóriánként, mennyire dönthet önállóan egy ügynök, lásd a <a href="#approvals">Jóváhagyások</a> fejezetet), <strong>Claude planek</strong> és <strong>Provider-ok</strong> (mindkettő lent).</p>
+
+      <h3>Claude planek</h3>
+      <p>Itt tartod nyilván a rendszerhez rendelt Claude-előfizetéseket (planeket). Egy plan kétféleképpen jöhet létre: egy beillesztett OAuth tokennel (a <code>claude setup-token</code> parancs kimenete), vagy egy már bejelentkezett Claude-mappára mutatva. A listában minden plan mellett a típusa (Személyes / Csapat), az, hogy mehet-e rajta csatorna (Telegram és társai), az állapota (rendben / közel a limithez / elfogyott), valamint az 5 órás és a heti keret csíkja, a nullázódás idejével. Az aktív plant egy pont jelöli.</p>
+      <div class="feature-block">
+        <h4>Új plan / szerkesztés (✎)</h4>
+        <p>Azonosító, címke, hitelesítési mód, típus és a csatorna-engedély megadásával. Szerkesztéskor a tokent üresen hagyva a meglévő marad, új token beillesztése lecseréli.</p>
+        <div class="consequence"><strong>Következmény:</strong> a beillesztett token titkosítva a <a href="#vault">Vault</a>-ba kerül, a felület soha többé nem mutatja vissza. Új token mentése után a rendszer azonnal le is ellenőrzi, így a sorban rögtön a valódi keret-használat (vagy az "érvénytelen token" hiba) látszik.</div>
+      </div>
+      <div class="feature-block">
+        <h4>Ellenőrzés most</h4>
+        <p>Élőben lekérdezi a plan aktuális keret-felhasználását. Csak tokennel felvett plannél működik, és egy plant percenként legfeljebb egyszer lehet ellenőrizni.</p>
+        <div class="no-consequence">Csak mér, a plant nem módosítja és nem vált át rá.</div>
+      </div>
+      <div class="feature-block">
+        <h4>Törlés (×)</h4>
+        <div class="consequence"><strong>Következmény:</strong> megerősítés után a plan kikerül a nyilvántartásból, és ha tokennel volt felvéve, a Vault-ban tárolt tokenje is törlődik.</div>
+      </div>
+      <p>A lista alatt két kapcsoló áll. Az <strong>automata kulcs-rotáció</strong> (<code>CLAUDE_ROTATION_ENABLED</code>) azt dönti el, hogy ha a főügynök aktív előfizetése kifogy, a rendszer magától átváltson-e egy másik regisztrált planre; ehhez legalább két plan kell. A <strong>flotta-rotáció</strong> (<code>CLAUDE_ROTATION_FLEET</code>) azt, hogy ilyenkor a beosztott ügynökök is kövessék-e.</p>
+      <div class="consequence"><strong>Következmény:</strong> rotációkor a főügynök munkamenete újraindul. Bekapcsolt flotta-rotációnál a közös flotta-token is lecserélődik, és újraindul minden beosztott ügynök, amelyik a közös tokent használja; a saját tokennel vagy saját mappával futó ügynököket ez nem érinti.</div>
+      <div class="installer-note">
+        <span class="installer-label">Telepítőnek</span>
+        Az automata rotáció előfeltétele a <code>MAIN_AGENT_ISOLATED_CONFIG=1</code> beállítás és legalább két regisztrált plan; a flotta-rotáció csak bekapcsolt automata rotáció mellett hat, és csak tokennel felvett célplannél. Mappára mutató plan élő ellenőrzésére a dashboard nem képes, mert annak hitelesítő adatait nem olvassa.
+      </div>
+
+      <h3>Provider-ok</h3>
+      <p>Egyéni, Anthropic-kompatibilis modell-szolgáltatók (provider-ok) nyilvántartása: név, belső azonosító, cím (Base URL), hitelesítési mód, és ha kell, a Vault-kulcs neve, amelyben a hozzáférési kulcs van. Az itt felvett provider az <a href="#agents">Ügynökök</a> modellválasztójában az "Egyéni provider" csoportban jelenik meg. Csak az Anthropic Messages API-val kompatibilis végpont működik; egy tisztán OpenAI-formátumú végponthoz fordító proxy kellene, ez nem támogatott.</p>
+      <div class="consequence"><strong>Következmény:</strong> egy provider törlése megerősítés után azonnali. Az az ügynök, amelyik ezt a providert használja, a következő indításakor nem indul el, hanem hibát jelez, amíg másik modellt nem választasz neki vagy a providert újra fel nem veszed. A Vault-ban tárolt kulcsot a törlés nem érinti.</div>
 
       <h3>Egy érték módosítása</h3>
       <p>Minden sor a kulcs nevét, rövid leírását, és egy szerkeszthető mezőt mutat (szám, szín vagy legördülő lista, a típustól függően). Módosításkor a sor "piszkosnak" jelölődik, az oldal alján egy sáv jelzi, hány módosítás vár mentésre.</p>
