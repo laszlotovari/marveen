@@ -12,13 +12,16 @@ if (!baseURL) {
     [
       'DASHBOARD_URL is not set.',
       'Point it at the dashboard instance to screenshot, e.g.:',
-      '  DASHBOARD_URL=http://localhost:3420 npx playwright test --config=docs/dashboard-kezikonyv/playwright.screenshots.config.ts',
+      '  DASHBOARD_URL=http://localhost:3421 npx playwright test --config=docs/dashboard-kezikonyv/playwright.screenshots.config.ts',
     ].join('\n'),
   )
 }
 
 export default defineConfig({
   testDir: './',
+  // The capture script is *.shots.ts so vitest leaves it alone; tell
+  // Playwright to collect exactly that file.
+  testMatch: /screenshots\.shots\.ts$/,
   timeout: 30_000,
   retries: 0,
   workers: 1,

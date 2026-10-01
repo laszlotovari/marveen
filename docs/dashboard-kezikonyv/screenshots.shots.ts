@@ -2,9 +2,11 @@
  * Screenshot capture tool for the dashboard-kezikonyv (user manual).
  *
  * Not a pass/fail test suite -- each "test" just navigates to a dashboard
- * page and saves a PNG into ./kepek/. Run with:
+ * page and saves a PNG into ./kepek/. Named *.shots.ts, not *.spec.ts, so the
+ * repo's vitest run does not collect it (it throws without DASHBOARD_TOKEN).
+ * Point it at the DEMO instance only, never at a live one:
  *
- *   DASHBOARD_URL=http://localhost:3420 DASHBOARD_TOKEN=$(cat store/.dashboard-token) \
+ *   DASHBOARD_URL=http://localhost:3421 DASHBOARD_TOKEN=$(cat ~/marveen-demo/app/store/.dashboard-token) \
  *     npx playwright test --config=docs/dashboard-kezikonyv/playwright.screenshots.config.ts
  *
  * To capture a subset while iterating, pass -g "<title fragment>".
@@ -43,7 +45,16 @@ const SHOTS: Shot[] = [
   },
   { name: '03-jovahagyasok', page: 'approvals' },
   { name: '04-ugynokok', page: 'agents' },
-  { name: '05-aktivitas', page: 'activity' },
+  {
+    // The former Activity page is now the Agents page's "Aktivitás" view; its
+    // live body is filled by a 3s poll, so wait one full tick after switching.
+    name: '04b-ugynokok-aktivitas',
+    page: 'agents',
+    after: async (p) => {
+      await p.click('#agentsViewActivity')
+      await p.waitForTimeout(3500)
+    },
+  },
   { name: '06-uzenetek', page: 'messages' },
   { name: '07-utemezesek', page: 'tasks' },
   { name: '08-hatter', page: 'bgTasks' },
@@ -87,12 +98,16 @@ async function dismissSetupBanners(page: import('@playwright/test').Page) {
   }
 }
 
-// Defensive: #toast is position:fixed with a 3s auto-hide (web/app.js
-// showToast()); if a page load ever fires one, force it hidden rather than
-// race its timeout. (Not the cause of the black-box artifact below --
-// verified by pixel-diffing screenshots with and without this call.)
+// #toast is position:fixed and "hidden" only by a translateY(100px) below the
+// bottom edge (web/style.css .toast). Once the viewport is grown to the page's
+// scrollHeight (below), that parked toast peeks in as a dark bar at the bottom
+// centre -- measured on the Kanban shot, 2026-10-01. display:none removes it
+// whatever its state, instead of racing showToast()'s 3s auto-hide.
 async function hideToast(page: import('@playwright/test').Page) {
-  await page.evaluate(() => document.getElementById('toast')?.classList.remove('visible'))
+  await page.evaluate(() => {
+    const toast = document.getElementById('toast')
+    if (toast) toast.style.display = 'none'
+  })
 }
 
 for (const shot of SHOTS) {
