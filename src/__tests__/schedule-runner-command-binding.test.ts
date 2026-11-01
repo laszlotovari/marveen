@@ -51,8 +51,19 @@ vi.mock('../channel-provider.js', async (importOriginal) => {
   }
 })
 
+// Scheduled-task registry: the runner fires only registry-matched tasks; this
+// suite's fixture tasks never went through the API, and the registry gate has
+// its own suite (schedule-source-registry.test.ts), so here it is a passthrough.
+vi.mock('../web/schedule-registry.js', () => ({
+  filterRegisteredTasks: <T,>(tasks: T[]) => tasks,
+  backfillScheduledTaskRegistryOnce: () => ({ ran: false, registered: [] }),
+  verifyScheduledTask: () => ({ ok: true }),
+  describeVerdict: () => '',
+}))
+
 vi.mock('../web/scheduled-tasks-io.js', () => ({
   listScheduledTasks: () => mockListScheduledTasks(),
+  readScheduledTask: (n: string) => (mockListScheduledTasks() as Array<{ name: string }>).find(t => t.name === n) ?? null,
   SCHEDULED_TASKS_DIR: '/tmp/marveen-command-binding-no-tasks-dir',
   SCHEDULED_TASK_INLINE_MAX_CHARS: 1_500,
   SCHEDULED_TASK_BODY_WARN_CHARS: 20_000,

@@ -134,7 +134,7 @@ describe('restart-lock wiring (pinned at the source)', () => {
     const body = fnBody(src('agent-process.ts'), 'restartAgentProcess')
     expect(body).toContain('beginRestart(name)')
     expect(body).toContain('stopAgentProcess(name)')
-    expect(body).toContain('startAgentProcess(name, opts)')
+    expect(body).toContain('startAgentProcess(name, willWake ? { ...opts, ownsResume: true } : opts)')
     // The release must be unconditional: a leaked slot silently disables every
     // liveness-driven auto-start for that agent for the life of the process.
     expect(body).toMatch(/finally\s*\{\s*endRestart\(name\)/)
@@ -152,8 +152,20 @@ describe('restart-lock wiring (pinned at the source)', () => {
     expect(body).not.toMatch(/return\s*\{\s*ok:\s*true/)
   })
 
+  // BOOTSTAGGER1007 (c): the reconcile's burst moved into runReconcileBurst
+  // (reconcile-stagger.ts, injected deps; its skip is also behaviour-tested in
+  // reconcile-stagger.test.ts). The guard is pinned in both halves: the monitor
+  // hands the real isRestartInFlight in, and the burst asks it before it starts.
+  it('channel-monitor.ts + reconcile-stagger.ts: the reconcile burst stands down while a managed restart is in flight', () => {
+    const monitor = fnBody(src('channel-monitor.ts'), 'reconcileDesiredAgents')
+    expect(monitor).toContain('await runReconcileBurst({')
+    expect(monitor).toMatch(/^\s*isRestartInFlight,\s*$/m)
+    const burst = fnBody(src('reconcile-stagger.ts'), 'runReconcileBurst')
+    expect(burst).toContain('d.isRestartInFlight(name)')
+    expect(burst.indexOf('d.isRestartInFlight(name)')).toBeLessThan(burst.indexOf('d.start(name)'))
+  })
+
   for (const [file, fn] of [
-    ['channel-monitor.ts', 'reconcileDesiredAgents'],
     ['schedule-runner.ts', null],
     ['reauth-healer.ts', 'restartFirstRunGatedAgent'],
   ] as Array<[string, string | null]>) {
@@ -172,11 +184,13 @@ describe('context-guard: a failed rescue is not filed as a completed one', () =>
 
   it('performRestart still asks for FRESH and now checks the result', () => {
     const body = fnBody(runner, 'performRestart')
-    expect(body).toContain('restartAgentProcess(name, { fresh: true })')
+    // ownsResume: the guard delivers its own resume, so the
+    // generic recovery brief stays out. Still FRESH.
+    expect(body).toContain('restartAgentProcess(name, { fresh: true, ownsResume: true })')
     // The result was discarded before RESTARTRACE901; a discarded result is how
     // "Agent is already running" became a silent success.
     expect(body).toMatch(/if\s*\(!res\.ok\)\s*throw/)
-    expect(body).not.toMatch(/^\s*await restartAgentProcess\(name, \{ fresh: true \}\)\s*$/m)
+    expect(body).not.toMatch(/^\s*await restartAgentProcess\(name, \{ fresh: true, ownsResume: true \}\)\s*$/m)
   })
 
   it('the restart action rolls the guard state back when the rescue fails', () => {

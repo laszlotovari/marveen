@@ -54,7 +54,7 @@ done
 
 # --- Tmux sessions ---
 echo -e "\n${BOLD}Tmux sessions${RESET}"
-if tmux has-session -t "${MAIN_AGENT_ID}-channels" 2>/dev/null; then
+if tmux has-session -t "=${MAIN_AGENT_ID}-channels:" 2>/dev/null; then
   ok "${MAIN_AGENT_ID}-channels: alive"
 else
   warn "${MAIN_AGENT_ID}-channels: not running"
@@ -70,7 +70,7 @@ if [ -z "$HB_AGENT" ] && [ -f store/config-overrides.json ]; then
   HB_AGENT=$(python3 -c "import json,sys;print(json.load(open('store/config-overrides.json')).get('HEARTBEAT_AGENT_ENABLED',''))" 2>/dev/null)
 fi
 if [ "$HB_AGENT" = "1" ]; then
-  if tmux has-session -t "agent-heartbeat" 2>/dev/null; then
+  if tmux has-session -t "=agent-heartbeat:" 2>/dev/null; then
     ok "agent-heartbeat: alive"
   else
     warn "agent-heartbeat: enabled but NOT running"
@@ -311,6 +311,20 @@ if [ -f "store/channels-failures.log" ]; then
   fi
 else
   ok "No failure log"
+fi
+
+# --- Spotlight (macOS) ---
+# Report only (SPOTLIGHT1022): a warn here never fails the run. See scripts/lib/spotlight-check.sh.
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo -e "\n${BOLD}Spotlight (macOS)${RESET}"
+  . "$INSTALL_DIR/scripts/lib/spotlight-check.sh"
+  spotlight_check | while IFS='|' read -r level msg; do
+    case "$level" in
+      ok)   ok "$msg" ;;
+      warn) warn "$msg" ;;
+      *)    echo "  - $msg" ;;
+    esac
+  done
 fi
 
 # --- Summary ---

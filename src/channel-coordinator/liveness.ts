@@ -16,6 +16,8 @@ import { PROJECT_ROOT } from '../config.js'
 import { channelStateDir, type ChannelProviderType } from '../channel-provider.js'
 import { agentDir } from '../web/agent-config.js'
 import { matchesProviderPollerCmd } from './provider-poller-match.js'
+import { exactTmuxTarget } from '../tmux-target.js'
+import { stateDirPluginPollerPids } from '../web/channel-poller-reap.js'
 
 const TMUX = resolveFromPath('tmux')
 
@@ -33,7 +35,7 @@ export const RESPAWN_STAMP_FILE = join(PROJECT_ROOT, 'store', '.channel-last-res
 
 export function getClaudePidForSession(session: string): number | null {
   try {
-    const out = execFileSync(TMUX, ['list-panes', '-t', session, '-F', '#{pane_pid}'], { timeout: 3000, encoding: 'utf-8' })
+    const out = execFileSync(TMUX, ['list-panes', '-t', exactTmuxTarget(session), '-F', '#{pane_pid}'], { timeout: 3000, encoding: 'utf-8' })
     const panePid = parseInt(out.trim().split('\n')[0], 10)
     if (!panePid) return null
     const cmd = execFileSync('/bin/ps', ['-p', String(panePid), '-o', 'comm='], { timeout: 3000, encoding: 'utf-8' }).trim()
@@ -67,10 +69,71 @@ export interface PluginAliveContext {
   isPidAlive: (pid: number) => boolean
   agentName?: string
   debugLog?: (event: string, fields: Record<string, unknown>) => void
+  /**
+   * Only a plugin process INSIDE claudePid's tree counts: no bot.pid and no
+   * machine-wide fallback. For a session that shares a provider with other
+   * sessions on the host (the main session's co-listen Slack next to the
+   * sub-agents' Slack plugins), the fallbacks answer "some Slack poller lives
+   * somewhere", not "this session has one" (BOOTSTAGGER1007 b review, #1762).
+   */
+  strictTree?: boolean
+  /**
+   * The last resort, asked only when the tree walk and bot.pid found nothing:
+   * the pids of this session's own state-dir plugin pollers from an env scan
+   * (stateDirPluginPollerPids). The long-lived poller is `bun server.ts`, whose
+   * argv carries no provider slug, so matchesProviderPollerCmd sees it only
+   * through its `bun run --cwd .../<provider>/<ver>` wrapper; once the wrapper
+   * has exited, the poller is still running and only its environment names it
+   * (FORKFA161A5921, after Argos's fa161a5: the monitor restarted three
+   * sub-agents every 3-4 minutes on that false "down"). Not asked with
+   * strictTree. Lazy, because the env scan is the costly snapshot. The probe
+   * passes only pollers that started no earlier than claudePid
+   * (pollersStartedSince): an orphan of an EARLIER session carries the same
+   * state dir, and taking it for this session's poller would answer "alive"
+   * for a session whose own plugin never came up (Samu, #2276 review).
+   */
+  stateDirPollerPids?: () => number[]
+}
+
+/** `ps -o etime=`: `[[dd-]hh:]mm:ss` (BSD and procps alike), in seconds; null when it does not parse. */
+export function parseEtimeSeconds(etime: string): number | null {
+  const m = etime.trim().match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/)
+  if (!m) return null
+  const [, d, h, min, s] = m
+  return ((Number(d ?? 0) * 24 + Number(h ?? 0)) * 60 + Number(min)) * 60 + Number(s)
+}
+
+/**
+ * The candidates that started no earlier than `claudePid`, from ONE
+ * `ps -o pid=,etime= -p <claudePid>,<candidates>` snapshot (a smaller elapsed
+ * time = a later start; the same second counts as since). A session's plugin
+ * is spawned by its claude, so its poller is never older than it; an orphan of
+ * an earlier session is. Anything unreadable (no row for claudePid or a
+ * candidate, an etime that does not parse) gives no evidence: that candidate is
+ * dropped, so the fallback never answers "alive" on it. Exported for testing.
+ */
+export function pollersStartedSince(claudePid: number, candidates: number[], psEtimeOutput: string): number[] {
+  const elapsed = new Map<number, number>()
+  for (const line of psEtimeOutput.split('\n')) {
+    const m = line.match(/^\s*(\d+)\s+(\S+)\s*$/)
+    if (!m) continue
+    const secs = parseEtimeSeconds(m[2]!)
+    if (secs !== null) elapsed.set(parseInt(m[1]!, 10), secs)
+  }
+  const claude = elapsed.get(claudePid)
+  if (claude === undefined) return []
+  return candidates.filter((pid) => {
+    const own = elapsed.get(pid)
+    return own !== undefined && own <= claude
+  })
+}
+
+function psEtimes(pids: number[]): string {
+  return execFileSync('/bin/ps', ['-o', 'pid=,etime=', '-p', pids.join(',')], { timeout: PS_PROBE_TIMEOUT_MS, encoding: 'utf-8' })
 }
 
 export function decideHasPluginAlive(ctx: PluginAliveContext): boolean {
-  const { psOutput, claudePid, providerType, botPid, isPidAlive, agentName, debugLog } = ctx
+  const { psOutput, claudePid, providerType, botPid, isPidAlive, agentName, debugLog, strictTree, stateDirPollerPids } = ctx
   const lines = psOutput.split('\n').slice(1)
   const childrenOf = new Map<number, number[]>()
   const cmdOf = new Map<number, string>()
@@ -95,6 +158,8 @@ export function decideHasPluginAlive(ctx: PluginAliveContext): boolean {
     if (matchesProviderPollerCmd(cmd, providerType)) return true
     for (const k of (childrenOf.get(p) || [])) stack.push(k)
   }
+
+  if (strictTree) return false
 
   if (botPid !== null && botPid > 1) {
     if (isPidAlive(botPid)) {
@@ -123,6 +188,13 @@ export function decideHasPluginAlive(ctx: PluginAliveContext): boolean {
         debugLog?.('discord plugin alive via process scan', { claudePid, discordPid: pid, agentName })
         return true
       }
+    }
+  }
+
+  for (const pid of stateDirPollerPids?.() ?? []) {
+    if (pid > 1 && isPidAlive(pid)) {
+      debugLog?.('plugin alive via state-dir env scan', { claudePid, pollerPid: pid, agentName, providerType })
+      return true
     }
   }
 
@@ -165,6 +237,7 @@ export function probeChannelPluginLiveness(
   claudePid: number,
   providerType: ChannelProviderType,
   agentName?: string,
+  opts: { strictTree?: boolean } = {},
 ): PluginLiveness {
   let psOutput: string
   try {
@@ -204,6 +277,20 @@ export function probeChannelPluginLiveness(
       providerType,
       botPid,
       agentName,
+      strictTree: opts.strictTree,
+      stateDirPollerPids: () => {
+        const candidates = stateDirPluginPollerPids(providerType, stateDir)
+        if (candidates.length === 0) return []
+        try {
+          return pollersStartedSince(claudePid, candidates, psEtimes([claudePid, ...candidates]))
+        } catch (err) {
+          // ps exits 1 when one of the pids is gone, and still prints the others: those rows are evidence, a
+          // missing row is not (pollersStartedSince drops it). Anything else (no output at all): no verdict.
+          const stdout = (err as { stdout?: unknown }).stdout
+          logger.debug({ err, claudePid, agentName, providerType }, 'state-dir env scan: ps -o etime failed, reading what it printed')
+          return typeof stdout === 'string' ? pollersStartedSince(claudePid, candidates, stdout) : []
+        }
+      },
       isPidAlive: (pid) => {
         try { process.kill(pid, 0); return true } catch { return false }
       },

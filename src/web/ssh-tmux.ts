@@ -3,6 +3,7 @@ import { encodeClaudeProjectDir } from '../claude-project-dir.js'
 import { join } from 'node:path'
 import { userInfo } from 'node:os'
 import { execFileSync } from 'node:child_process'
+import { ROOT_SANDBOX_ENV } from './root-sandbox-env.js'
 
 // SSH + tmux transport primitives.
 //
@@ -161,7 +162,8 @@ export function buildRemoteLaunchCommand(opts: {
   const path = 'export PATH="$HOME/.bun/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"'
   const cont = opts.continue ? '--continue ' : ''
   // CHANSPARE925: no Agent view on remote agents either (parity with every local launch).
-  return `${path} && export CLAUDE_CODE_DISABLE_AGENT_VIEW=1 && cd ${shQuote(opts.workdir)} && claude ${cont}--dangerously-skip-permissions --model ${shQuote(opts.model)}`
+  // ROOTRESPAWN1001: evaluated on the REMOTE host, where claude runs.
+  return `${path} && export CLAUDE_CODE_DISABLE_AGENT_VIEW=1 && ${ROOT_SANDBOX_ENV} && cd ${shQuote(opts.workdir)} && claude ${cont}--dangerously-skip-permissions --model ${shQuote(opts.model)}`
 }
 
 /**
@@ -177,6 +179,46 @@ export function buildRemoteLaunchCommand(opts: {
 export function buildContinueProbeCommand(absWorkdir: string): string {
   const encoded = encodeClaudeProjectDir(absWorkdir)
   return 'test -d "$HOME/.claude/projects/"' + shQuote(encoded)
+}
+
+/**
+ * REMOTESAWTURN1022: the remote command that prints the remote clock and the
+ * mtime of the newest transcript of an absolute workdir, both in epoch
+ * seconds: `<now> <mtime>`. With no transcript dir or no .jsonl file, only
+ * `<now>` is printed and the exit status stays 0. `$HOME` stays outside the
+ * single quotes for the same reason as in buildContinueProbeCommand. Both the
+ * GNU form (`stat -c %Y`) and the BSD form (`stat -f %m`) are tried, because the
+ * remote may be either.
+ */
+export function buildRemoteTranscriptMtimeCommand(absWorkdir: string): string {
+  const encoded = encodeClaudeProjectDir(absWorkdir)
+  const dir = '"$HOME/.claude/projects/"' + shQuote(encoded)
+  return (
+    `printf '%s' "$(date +%s)"; ` +
+    `m=$(for f in ${dir}/*.jsonl; do stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null; done | sort -n | tail -1); ` +
+    `[ -n "$m" ] && printf ' %s' "$m"; echo; exit 0`
+  )
+}
+
+/**
+ * Parse the output of buildRemoteTranscriptMtimeCommand into a local-clock
+ * epoch ms estimate of the newest transcript write, or null when there is no
+ * usable reading. The age is measured on the remote clock (remote now minus
+ * remote mtime), so a skewed remote clock cancels out. The age is then projected
+ * back from `localBeforeMs`, the local clock read before the ssh call.
+ *
+ * Conservative by construction: the result is never later than the true
+ * write. The ssh latency only moves it earlier, and the extra second covers
+ * the whole-second truncation of both remote readings. A write from before an
+ * injection therefore cannot pass for a turn started after it. An mtime in the
+ * remote future is a clock fault and yields null.
+ */
+export function parseRemoteTranscriptMtime(stdout: string, localBeforeMs: number): number | null {
+  const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(stdout)
+  if (!m) return null
+  const ageS = Number(m[1]) - Number(m[2])
+  if (!Number.isFinite(ageS) || ageS < 0) return null
+  return localBeforeMs - (ageS + 1) * 1000
 }
 
 let controlDirEnsured = false

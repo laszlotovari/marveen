@@ -73,8 +73,19 @@ vi.mock('../channel-provider.js', async (importOriginal) => {
   }
 })
 
+// Scheduled-task registry: this suite drives the runner with fixture tasks that never went
+// through the dashboard API; the registry gate is covered by
+// schedule-source-registry.test.ts, so here it is a passthrough.
+vi.mock('../web/schedule-registry.js', () => ({
+  filterRegisteredTasks: <T,>(tasks: T[]) => tasks,
+  backfillScheduledTaskRegistryOnce: () => ({ ran: false, registered: [] }),
+  verifyScheduledTask: () => ({ ok: true }),
+  describeVerdict: () => '',
+}))
+
 vi.mock('../web/scheduled-tasks-io.js', () => ({
   listScheduledTasks: () => mockListScheduledTasks(),
+  readScheduledTask: (n: string) => (mockListScheduledTasks() as Array<{ name: string }>).find(t => t.name === n) ?? null,
   SCHEDULED_TASKS_DIR: '/tmp/marveen-retry-missing-no-tasks-dir',
   // SCHEDPROMPTREF917: attemptFireTask reads these on every fire (size-guard
   // + inline/snapshot threshold). Real values -- the fixtures' short prompts
