@@ -31,5 +31,13 @@ export default defineConfig({
     channel: 'chrome',
     headless: true,
     viewport: { width: 1440, height: 900 },
+    // Native date inputs follow the browser's UI language, not just the page
+    // locale; without --lang the Hungarian manual shows an mm/dd/yyyy field.
+    locale: 'hu-HU',
+    timezoneId: 'Europe/Budapest',
+    launchOptions: {
+      args: ['--lang=hu-HU'],
+      env: { ...process.env, LANG: 'hu_HU.UTF-8', LANGUAGE: 'hu' },
+    },
   },
 })

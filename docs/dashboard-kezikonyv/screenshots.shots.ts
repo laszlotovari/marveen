@@ -21,7 +21,8 @@ if (!TOKEN) {
   throw new Error('DASHBOARD_TOKEN is not set (cat store/.dashboard-token).')
 }
 
-const KEPEK_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'kepek')
+// SHOTS_DIR lets a trial run write somewhere other than the committed images.
+const KEPEK_DIR = process.env.SHOTS_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), 'kepek')
 
 // One entry per screenshot. `page` is the switchPage() key; `after` runs
 // extra UI actions once that page has loaded (e.g. opening a sub-view).
@@ -30,6 +31,8 @@ type Shot = {
   name: string
   page: string
   after?: (p: import('@playwright/test').Page) => Promise<void>
+  // Skip this shot unless the named env var is set (state-dependent shots).
+  requiresEnv?: string
 }
 
 const SHOTS: Shot[] = [
@@ -43,6 +46,26 @@ const SHOTS: Shot[] = [
       await p.waitForTimeout(400)
     },
   },
+  {
+    // Card detail of the Tesztelés-state demo card: start date, time spent in
+    // progress, test steps and the Token block are all on it.
+    name: '02e-kanban-kartya',
+    page: 'kanban',
+    after: async (p) => {
+      await p.click('.kanban-card:has-text("Szállítási díj kalkulátor")')
+      await p.waitForTimeout(800)
+    },
+  },
+  {
+    // Open the "deleted in the last 7 days" section so the shot shows both lists.
+    name: '02c-jegyzetek',
+    page: 'notes',
+    after: async (p) => {
+      await p.evaluate(() => { (document.getElementById('notesDeleted') as HTMLDetailsElement).open = true })
+      await p.waitForTimeout(200)
+    },
+  },
+  { name: '02d-projektek', page: 'projects' },
   { name: '03-jovahagyasok', page: 'approvals' },
   { name: '04-ugynokok', page: 'agents' },
   {
@@ -61,7 +84,15 @@ const SHOTS: Shot[] = [
   { name: '09-memoria', page: 'memories' },
   { name: '10-naplo', page: 'naplo' },
   { name: '11-skillek', page: 'skills' },
-  { name: '12-kutatas', page: 'research' },
+  {
+    // Open the first document so the viewer pane is not empty.
+    name: '12-kutatas',
+    page: 'research',
+    after: async (p) => {
+      await p.click('#researchList a')
+      await p.waitForTimeout(600)
+    },
+  },
   { name: '13-otletlada', page: 'ideas' },
   { name: '14-koltsegek', page: 'costs' },
   { name: '15-token-monitor', page: 'tokenUsage' },
@@ -73,6 +104,9 @@ const SHOTS: Shot[] = [
   { name: '21-federacio', page: 'federation' },
   { name: '22-koltoztetes', page: 'migrate' },
   { name: '23-dokumentacio', page: 'docs' },
+  // Only meaningful while the demo's store/fleet-freeze.json exists: create
+  // that file, then run with SHOT_FLEET_FREEZE=1 -g "24-piros-gomb".
+  { name: '24-piros-gomb', page: 'overview', requiresEnv: 'SHOT_FLEET_FREEZE' },
 ]
 
 test.beforeEach(async ({ page }) => {
@@ -112,6 +146,7 @@ async function hideToast(page: import('@playwright/test').Page) {
 
 for (const shot of SHOTS) {
   test(`capture: ${shot.name}`, async ({ page }) => {
+    test.skip(!!shot.requiresEnv && !process.env[shot.requiresEnv], `needs ${shot.requiresEnv}`)
     await page.goto(`/?token=${TOKEN}`)
     await page.waitForLoadState('networkidle')
     await page.evaluate((key) => {
