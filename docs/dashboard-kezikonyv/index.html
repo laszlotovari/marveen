@@ -763,7 +763,7 @@
       <div class="no-consequence">A mentés csak az ütemezést hozza létre vagy módosítja, önmagában nem futtat le semmit. Ha a mentés nem sikerül, a hibaüzenet megjelenik, és az ablak nyitva marad.</div>
       <div class="installer-note">
         <span class="installer-label">Telepítőnek</span>
-        A rendszer csak olyan ütemezett feladatot futtat le (a "Futtatás most" gombbal sem), amit a Dashboardon vagy az API-n keresztül mentettek el. Ha egy feladat fájljait kézzel szerkesztik a lemezen, a feladat némán kimarad, miközben a listában továbbra is "Aktív"-nak látszik; a főügynök kap róla egy értesítést. Javítás: nyisd meg a feladatot a Dashboardon, és mentsd el újra.
+        A rendszer csak olyan ütemezett feladatot futtat le (a "Futtatás most" gombbal sem), amit a Dashboardon vagy az API-n keresztül mentettek el. Ha egy feladat fájljait kézzel szerkesztik a lemezen, a feladat némán kimarad, miközben a listában továbbra is "Aktív"-nak látszik; a főügynök kap róla egy értesítést. Ilyen feladatot a Dashboardon sem szerkeszteni, sem szüneteltetni nem lehet: a szerver elutasítja, hogy ne hitelesítse utólag az idegen tartalmat (a szerkesztő ablak kiírja a hibát, a szüneteltetés viszont tévesen sikert jelez, lásd lent). Javítás: a fájlokat átnézve parancssorból újra kell regisztrálni (<code>node dist/web/schedule-registry-cli.js register &lt;név&gt;</code>), vagy a feladatot törölni és újra létrehozni.
       </div>
 
       <h3>Egy sor gombjai</h3>
